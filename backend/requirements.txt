@@ -1,0 +1,18 @@
+# Framework Web
+fastapi[standard]
+uvicorn
+
+# Banco de Dados (ORM Moderno)
+sqlmodel       # Substitui o SQLAlchemy puro
+psycopg[binary] # Driver PostgreSQL
+
+# Configurações
+pydantic-settings
+email-validator
+
+# Segurança
+passlib[bcrypt]
+# O bcrypt será instalado automaticamente como dependência compatível
+
+# Uploads
+python-multipart
