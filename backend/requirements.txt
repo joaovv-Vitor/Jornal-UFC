@@ -3,7 +3,7 @@ fastapi[standard]
 uvicorn
 
 # Banco de Dados (ORM Moderno)
-sqlmodel       # Substitui o SQLAlchemy puro
+sqlmodel       
 psycopg[binary] # Driver PostgreSQL
 
 # Configurações
