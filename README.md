@@ -14,6 +14,7 @@ API de backend para um sistema de jornal digital, desenvolvida com **FastAPI** e
 ## 🗂️ Modelo de Dados (Diagrama ER)
 
 
+
 ```mermaid
 erDiagram
     USUARIOS {
