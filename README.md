@@ -13,16 +13,15 @@ API de backend para um sistema de jornal digital, desenvolvida com **FastAPI** e
 
 ## 🗂️ Modelo de Dados (Diagrama ER)
 
-Abaixo está a estrutura do banco de dados relacional desenhada com Mermaid.
 
 ```mermaid
 erDiagram
     USUARIOS {
         int id PK
         string nome
-        string email UK "Unique"
+        string email
         string senha_hash
-        string role "default: leitor"
+        string role
         datetime criado_em
     }
 
@@ -30,8 +29,8 @@ erDiagram
         int id PK
         string titulo
         string subtitulo
-        text conteudo
-        string slug UK "Unique"
+        string conteudo
+        string slug
         string imagem_capa
         boolean publicado
         datetime publicado_em
@@ -44,13 +43,13 @@ erDiagram
     CATEGORIAS {
         int id PK
         string nome
-        string slug UK
+        string slug
     }
 
     TAGS {
         int id PK
         string nome
-        string slug UK
+        string slug
     }
 
     NOTICIAS_TAGS {
@@ -60,7 +59,7 @@ erDiagram
 
     COMENTARIOS {
         int id PK
-        text conteudo
+        string conteudo
         datetime criado_em
         boolean aprovado
         int usuario_id FK
@@ -70,5 +69,23 @@ erDiagram
     EVENTOS {
         int id PK
         string titulo
-        text
+        string descricao
+        datetime data_inicio
+        datetime data_fim
+        string local
+        string imagem_url
+        boolean destaque
+        datetime criado_em
+        int usuario_id FK
     }
+
+    %% Relacionamentos
+    USUARIOS ||--o{ NOTICIAS : escreve
+    USUARIOS ||--o{ COMENTARIOS : faz
+    USUARIOS ||--o{ EVENTOS : cadastra
+    
+    CATEGORIAS ||--o{ NOTICIAS : classifica
+    
+    NOTICIAS ||--o{ COMENTARIOS : recebe
+    NOTICIAS ||--o{ NOTICIAS_TAGS : possui
+    TAGS ||--o{ NOTICIAS_TAGS : etiqueta
