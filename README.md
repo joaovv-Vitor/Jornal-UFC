@@ -1,79 +1,74 @@
-# jornal UFC
+# 📰 Jornal UFC - Lide API
 
+API de backend para um sistema de jornal digital, desenvolvida com **FastAPI** e **PostgreSQL**. O sistema gerencia notícias, usuários, categorias, tags, comentários e uma agenda de eventos.
 
-classDiagram
-    class USUARIOS {
-        int id
+## 🚀 Tecnologias Utilizadas
+
+* **Linguagem:** Python 3.12
+* **Framework:** FastAPI
+* **ORM:** SQLModel (SQLAlchemy + Pydantic)
+* **Banco de Dados:** PostgreSQL
+* **Gerenciamento de Dependências:** Docker & Docker Compose
+* **Migrações/Validação:** Pydantic Settings & Email Validator
+
+## 🗂️ Modelo de Dados (Diagrama ER)
+
+Abaixo está a estrutura do banco de dados relacional desenhada com Mermaid.
+
+```mermaid
+erDiagram
+    USUARIOS {
+        int id PK
         string nome
-        string email
+        string email UK "Unique"
         string senha_hash
-        string role
+        string role "default: leitor"
         datetime criado_em
     }
 
-    class NOTICIAS {
-        int id
+    NOTICIAS {
+        int id PK
         string titulo
         string subtitulo
         text conteudo
-        string slug
+        string slug UK "Unique"
         string imagem_capa
         boolean publicado
         datetime publicado_em
         datetime criado_em
         datetime atualizado_em
-        int autor_id
-        int categoria_id
+        int autor_id FK
+        int categoria_id FK
     }
 
-    class CATEGORIAS {
-        int id
+    CATEGORIAS {
+        int id PK
         string nome
-        string slug
+        string slug UK
     }
 
-    class TAGS {
-        int id
+    TAGS {
+        int id PK
         string nome
-        string slug
+        string slug UK
     }
 
-    class NOTICIAS_TAGS {
-        int noticia_id
-        int tag_id
+    NOTICIAS_TAGS {
+        int noticia_id PK,FK
+        int tag_id PK,FK
     }
 
-    class COMENTARIOS {
-        int id
+    COMENTARIOS {
+        int id PK
         text conteudo
         datetime criado_em
         boolean aprovado
-        int usuario_id
-        int noticia_id
+        int usuario_id FK
+        int noticia_id FK
     }
 
-    class EVENTOS {
-        int id
+    EVENTOS {
+        int id PK
         string titulo
-        text descricao
-        datetime data_inicio
-        datetime data_fim
-        string local
-        string imagem_url
-        boolean destaque
-        datetime criado_em
-        int usuario_id
+        text
     }
-
-    %% ------- RELACIONAMENTOS -------
-    USUARIOS "1" --> "0..*" NOTICIAS : escreve
-    USUARIOS "1" --> "0..*" COMENTARIOS : faz
-    USUARIOS "1" --> "0..*" EVENTOS : cadastra
-
-    CATEGORIAS "1" --> "0..*" NOTICIAS : contem
-
-    NOTICIAS "1" --> "0..*" COMENTARIOS : recebe
-
-    NOTICIAS "0..*" --> "0..*" TAGS : possui
-    NOTICIAS -- NOTICIAS_TAGS
-    TAGS -- NOTICIAS_TAGS
