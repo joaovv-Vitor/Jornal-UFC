@@ -1,13 +1,20 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from datetime import datetime
+from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 
-# Importação condicional para evitar ciclo
 if TYPE_CHECKING:
-    from .noticia import Noticia, CurtidaNoticia # Importar CurtidaNoticia
-    from .comentario import Comentario, CurtidaComentario # Importar CurtidaComentario
+    from .noticia import Noticia, CurtidaNoticia
+    from .comentario import Comentario, CurtidaComentario
     from .evento import Evento
-    
+
+# Definindo os papeis fixos do sistema
+class RoleEnum(str, Enum):
+    ADMIN = "admin"
+    PROFESSOR = "professor"
+    BOLSISTA = "bolsista"
+    LEITOR = "leitor"
+
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
@@ -15,13 +22,31 @@ class Usuario(SQLModel, table=True):
     nome: str
     email: str = Field(unique=True, index=True)
     senha_hash: str
-    role: str = Field(default="leitor")
+    
+    # Define o papel do usuário (Padrão é leitor)
+    role: RoleEnum = Field(default=RoleEnum.LEITOR)
+    
     criado_em: datetime = Field(default_factory=datetime.now)
 
-    # Note as aspas em "Noticia", "Comentario", etc.
-    noticias: list["Noticia"] = Relationship(back_populates="autor")
-    comentarios: list["Comentario"] = Relationship(back_populates="usuario")
-    eventos: list["Evento"] = Relationship(back_populates="usuario")
+    # --- HIERARQUIA (Quem é o chefe?) ---
+    # Se for Bolsista, esse campo guarda o ID do Professor
+    orientador_id: int | None = Field(default=None, foreign_key="usuarios.id")
 
-    curtidas_noticias: list["CurtidaNoticia"] = Relationship(back_populates="usuario")
-    curtidas_comentarios: list["CurtidaComentario"] = Relationship(back_populates="usuario")
+    # Relacionamento para acessar o objeto do Professor (Orientador)
+    # remote_side=[id] é OBRIGATÓRIO em auto-relacionamentos no SQLModel/SQLAlchemy
+    orientador: Optional["Usuario"] = Relationship(
+        back_populates="bolsistas", 
+        sa_relationship_kwargs={"remote_side": "Usuario.id"}
+    )
+
+    # Relacionamento para o Professor ver sua lista de alunos
+    bolsistas: List["Usuario"] = Relationship(back_populates="orientador")
+
+    # --- Relacionamentos de Conteúdo ---
+    noticias: List["Noticia"] = Relationship(back_populates="autor")
+    comentarios: List["Comentario"] = Relationship(back_populates="usuario")
+    eventos: List["Evento"] = Relationship(back_populates="usuario")
+    
+    # --- Relacionamentos de Curtidas ---
+    curtidas_noticias: List["CurtidaNoticia"] = Relationship(back_populates="usuario")
+    curtidas_comentarios: List["CurtidaComentario"] = Relationship(back_populates="usuario")
