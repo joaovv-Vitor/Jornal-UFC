@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import HTMLResponse
 from sqlmodel import select
-from jose import jwt, JWTError
+from jose import jwt, JWTError # type: ignore
 from pydantic import ValidationError
 
 from app.core.database import SessionDep
