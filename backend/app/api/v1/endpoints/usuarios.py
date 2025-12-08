@@ -1,14 +1,21 @@
-from fastapi import APIRouter, HTTPException, status
+# app/api/endpoints/usuarios.py
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from sqlmodel import select
 from app.core.database import SessionDep
 from app.core.security import get_password_hash
+from app.core.email import enviar_email_simples
+# Ajustei os imports para ficarem conforme sua estrutura de pastas (app.db...)
 from app.models.usuario import Usuario, RoleEnum
 from app.schemas.usuario import UsuarioCreate, UsuarioRead, SolicitacaoBolsa
 
 router = APIRouter()
 
 @router.post("/", response_model=UsuarioRead, status_code=status.HTTP_201_CREATED)
-def create_usuario(usuario_in: UsuarioCreate, session: SessionDep):
+def create_usuario(
+    usuario_in: UsuarioCreate, 
+    session: SessionDep,
+    background_tasks: BackgroundTasks # <--- Injeção para enviar e-mail em 2º plano
+):
     """
     Cria um novo usuário no sistema.
     - **Leitor**: Criação direta (Ativo).
@@ -27,8 +34,7 @@ def create_usuario(usuario_in: UsuarioCreate, session: SessionDep):
             detail="Este e-mail já está cadastrado."
         )
 
-    # 2. Preparar objeto para o Banco (convertendo Schema -> Model)
-    # exclude={"email_orientador"} remove o campo que não existe na tabela do banco
+    # 2. Preparar objeto para o Banco
     novo_usuario = Usuario.model_validate(
         usuario_in, update={"senha_hash": get_password_hash(usuario_in.senha)}
     )
@@ -37,10 +43,23 @@ def create_usuario(usuario_in: UsuarioCreate, session: SessionDep):
     
     # --- REGRA DO PROFESSOR ---
     if usuario_in.role == RoleEnum.PROFESSOR:
-        # Nasce bloqueado aguardando clicar no email
         novo_usuario.is_active = False 
-        # TODO: Aqui chamaremos a função de enviar email de verificação
-        print(f"DEBUG: Enviar email de verificação para {novo_usuario.email}")
+        
+        # Envio de Email de Confirmação
+        link_ativacao = f"http://localhost:8000/api/v1/auth/verificar?email={novo_usuario.email}"
+        html_content = f"""
+        <h1>Bem-vindo ao Jornal UFC!</h1>
+        <p>Olá professor(a) <b>{novo_usuario.nome}</b>,</p>
+        <p>Para ativar sua conta e gerenciar bolsistas, clique no link abaixo:</p>
+        <a href="{link_ativacao}" style="padding: 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">ATIVAR MINHA CONTA</a>
+        """
+        
+        background_tasks.add_task(
+            enviar_email_simples,
+            "Ativação de Conta - Jornal UFC",
+            [novo_usuario.email],
+            html_content
+        )
 
     # --- REGRA DO BOLSISTA ---
     elif usuario_in.role == RoleEnum.BOLSISTA:
@@ -56,14 +75,24 @@ def create_usuario(usuario_in: UsuarioCreate, session: SessionDep):
             )
         
         novo_usuario.orientador_id = orientador.id
-        novo_usuario.is_active = False # Nasce bloqueado aguardando o Professor aprovar
+        novo_usuario.is_active = False 
         
-        # TODO: Aqui chamaremos a função de avisar o professor
-        print(f"DEBUG: Enviar email para o professor {orientador.email} aprovar o aluno")
+        # Avisar o Professor Orientador
+        html_content = f"""
+        <h1>Nova Solicitação de Bolsista</h1>
+        <p>O aluno <b>{novo_usuario.nome}</b> ({novo_usuario.email}) cadastrou-se indicando você como orientador.</p>
+        <p>Acesse o painel do sistema para aprovar ou rejeitar esta solicitação.</p>
+        """
+        
+        background_tasks.add_task(
+            enviar_email_simples,
+            "Aprovação Pendente - Jornal UFC",
+            [orientador.email],
+            html_content
+        )
 
     # --- REGRA DO LEITOR ---
     else:
-        # Leitor comum nasce ativo (ou inativo se quiser confirmar email também)
         novo_usuario.is_active = True
 
     # 4. Salvar no Banco
@@ -74,19 +103,18 @@ def create_usuario(usuario_in: UsuarioCreate, session: SessionDep):
     return novo_usuario
 
 
-# 1. Rota: Leitor vira Bolsista (Requer aprovação do Professor)
 @router.patch("/{user_id}/virar-bolsista", response_model=UsuarioRead)
 def tornar_se_bolsista(
     user_id: int, 
     solicitacao: SolicitacaoBolsa, 
-    session: SessionDep
+    session: SessionDep,
+    background_tasks: BackgroundTasks # <--- Injeção aqui também
 ):
     # Busca o usuário
     usuario = session.get(Usuario, user_id)
     if not usuario:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
 
-    # Verifica se já é bolsista
     if usuario.role == RoleEnum.BOLSISTA:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Usuário já é bolsista")
 
@@ -104,19 +132,29 @@ def tornar_se_bolsista(
     # APLICA A MUDANÇA
     usuario.role = RoleEnum.BOLSISTA
     usuario.orientador_id = orientador.id
-    usuario.is_active = False  # <--- BLOQUEIA A CONTA ATÉ O PROFESSOR APROVAR!
+    usuario.is_active = False  # Bloqueia até aprovação
     
     session.add(usuario)
     session.commit()
     session.refresh(usuario)
     
-    # TODO: Disparar e-mail para o professor aqui
-    print(f"DEBUG: Email enviado para {orientador.email} aprovar o novo bolsista.")
+    # Envia email para o professor
+    html_content = f"""
+    <h1>Solicitação de Vínculo de Bolsa</h1>
+    <p>O usuário leitor <b>{usuario.nome}</b> solicitou alteração para Bolsista sob sua orientação.</p>
+    <p>Acesse o sistema para aprovar.</p>
+    """
+    
+    background_tasks.add_task(
+        enviar_email_simples,
+        "Solicitação de Novo Bolsista",
+        [orientador.email],
+        html_content
+    )
     
     return usuario
 
 
-# 2. Rota: Bolsista vira Leitor (Perde vínculo)
 @router.patch("/{user_id}/virar-leitor", response_model=UsuarioRead)
 def tornar_se_leitor(user_id: int, session: SessionDep):
     # Busca o usuário
@@ -129,8 +167,8 @@ def tornar_se_leitor(user_id: int, session: SessionDep):
 
     # APLICA A MUDANÇA
     usuario.role = RoleEnum.LEITOR
-    usuario.orientador_id = None # Remove o vínculo
-    usuario.is_active = True     # Garante que ele possa logar
+    usuario.orientador_id = None
+    usuario.is_active = True
     
     session.add(usuario)
     session.commit()

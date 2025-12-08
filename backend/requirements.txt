@@ -13,6 +13,8 @@ email-validator
 
 # Segurança
 passlib[bcrypt]
+bcrypt==4.0.1
+python-jose[cryptography]
 # O bcrypt será instalado automaticamente como dependência compatível
 
 # Uploads

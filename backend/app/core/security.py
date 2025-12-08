@@ -1,19 +1,25 @@
 # app/core/security.py
+from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
+from jose import jwt
+from app.core.config import settings
 
-# Configura o algoritmo Bcrypt (padrão da indústria)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verifica se a senha em texto puro bate com o hash salvo no banco.
-    Usado no Login.
-    """
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """
-    Gera o hash da senha.
-    Usado no Cadastro (Register).
-    """
     return pwd_context.hash(password)
+
+# --- NOVO: Função para criar Token JWT ---
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
