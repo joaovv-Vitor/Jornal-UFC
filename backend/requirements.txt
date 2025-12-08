@@ -1,6 +1,7 @@
 # Framework Web
 fastapi[standard]
 uvicorn
+fastapi-mail
 
 # Banco de Dados (ORM Moderno)
 sqlmodel       
@@ -16,3 +17,4 @@ passlib[bcrypt]
 
 # Uploads
 python-multipart
+

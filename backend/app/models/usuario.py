@@ -22,9 +22,14 @@ class Usuario(SQLModel, table=True):
     nome: str
     email: str = Field(unique=True, index=True)
     senha_hash: str
+
+    
     
     # Define o papel do usuário (Padrão é leitor)
     role: RoleEnum = Field(default=RoleEnum.LEITOR)
+
+    #validando professor
+    is_active: bool = Field(default=True)
     
     criado_em: datetime = Field(default_factory=datetime.now)
 
