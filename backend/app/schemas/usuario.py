@@ -39,3 +39,7 @@ class UsuarioRead(UsuarioBase):
     id: int
     is_active: bool
     orientador_id: int | None = None
+
+
+class SolicitacaoBolsa(SQLModel):
+    email_orientador: EmailStr

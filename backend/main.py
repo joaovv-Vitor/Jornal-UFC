@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 
 # Importar modelos para que o SQLModel os reconheça ao criar o banco
 from app import models
+from app.api.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +25,4 @@ app = FastAPI(
 def root():
     return {"message": "API do Jornal UFC está rodando!", "docs": "/docs"}
 
-# Exemplo de uso futuro:
-# from app.api.main import api_router
-# app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router, prefix=settings.API_V1_STR)
