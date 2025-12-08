@@ -1,5 +1,5 @@
 # app/core/email.py
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType # type: ignore
 from pydantic import EmailStr
 from app.core.config import settings
 from typing import List

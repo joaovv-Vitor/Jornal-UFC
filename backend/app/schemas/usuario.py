@@ -43,3 +43,12 @@ class UsuarioRead(UsuarioBase):
 
 class SolicitacaoBolsa(SQLModel):
     email_orientador: EmailStr
+
+# Input para pedir o e-mail de recuperação
+class GenerateUserToken(SQLModel):
+    email: EmailStr
+
+# Input para efetivar a troca de senha
+class ResetPassword(SQLModel):
+    token: str
+    new_password: str
