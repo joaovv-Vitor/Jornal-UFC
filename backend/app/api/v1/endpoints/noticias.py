@@ -47,3 +47,100 @@ def criar_noticia(
     )
     
     return nova_noticia
+
+
+# [US 03] - LISTAR (FEED)
+@router.get("/", response_model=list[NoticiaRead])
+def listar_feed(
+    skip: int = 0, 
+    limit: int = 10, 
+    session: SessionDep = None
+):
+    """
+    Feed de notícias público.
+    """
+    service = NoticiaService(session)
+    return service.listar_noticias(skip, limit)
+
+# [US 03] - DETALHES (POR SLUG)
+@router.get("/{slug}", response_model=NoticiaRead)
+def ver_noticia(slug: str, session: SessionDep):
+    """
+    Acessar notícia pela URL amigável.
+    Ex: /noticias/nova-bolsa-2024
+    """
+    service = NoticiaService(session)
+    noticia = service.buscar_por_slug(slug)
+    
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+        
+    return noticia
+
+# [US 06] - EXCLUIR
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_noticia(
+    id: int, 
+    session: SessionDep, 
+    current_user: CurrentUser
+):
+    """
+    Deleta uma notícia.
+    Regra: Bolsista só apaga a sua. Professor apaga qualquer uma.
+    """
+    service = NoticiaService(session)
+    noticia = service.buscar_por_id(id)
+
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+
+    # Regra de Permissão (ACL)
+    if current_user.role == RoleEnum.BOLSISTA and noticia.autor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você só pode excluir suas próprias notícias.")
+    
+    if current_user.role == RoleEnum.LEITOR:
+        raise HTTPException(status_code=403, detail="Sem permissão.")
+
+    service.deletar_noticia(noticia)
+    return None
+
+# [US 05] - EDITAR
+@router.patch("/{id}", response_model=NoticiaRead)
+def editar_noticia(
+    id: int,
+    # Campos opcionais (Form)
+    titulo: Optional[str] = Form(None),
+    conteudo: Optional[str] = Form(None),
+    subtitulo: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    imagem: Optional[UploadFile] = File(None),
+    
+    session: SessionDep = None,
+    current_user: CurrentUser = None
+):
+    """
+    Atualiza uma notícia (texto ou imagem).
+    """
+    service = NoticiaService(session)
+    noticia = service.buscar_por_id(id)
+
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+
+    # Regra de Permissão
+    if current_user.role == RoleEnum.BOLSISTA and noticia.autor_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Você só pode editar suas próprias notícias.")
+    
+    if current_user.role == RoleEnum.LEITOR:
+        raise HTTPException(status_code=403, detail="Sem permissão.")
+
+    noticia_atualizada = service.atualizar_noticia(
+        noticia_db=noticia,
+        titulo=titulo,
+        conteudo=conteudo,
+        subtitulo=subtitulo,
+        tags_str=tags,
+        imagem=imagem
+    )
+    
+    return noticia_atualizada

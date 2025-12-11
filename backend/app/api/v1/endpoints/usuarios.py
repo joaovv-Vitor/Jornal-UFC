@@ -11,6 +11,24 @@ from app.core.deps import CurrentUser
 
 router = APIRouter()
 
+
+@router.get("/", response_model=list[UsuarioRead])
+def listar_usuarios(
+    session: SessionDep,
+    skip: int = 0,
+    limit: int = 100,
+    # current_user: CurrentUser # Descomente se quiser que só logados vejam
+):
+    """
+    Lista todos os usuários do sistema.
+    Use 'skip' e 'limit' para paginação.
+    """
+    usuarios = session.exec(select(Usuario).offset(skip).limit(limit)).all()
+    return usuarios
+
+
+
+
 @router.post("/", response_model=UsuarioRead, status_code=status.HTTP_201_CREATED)
 def create_usuario(
     usuario_in: UsuarioCreate, 
@@ -272,3 +290,5 @@ def aprovar_bolsista(
     )
 
     return aluno
+
+

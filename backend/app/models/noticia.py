@@ -47,6 +47,8 @@ class Noticia(SQLModel, table=True):
     criado_em: datetime = Field(default_factory=datetime.now)
     atualizado_em: datetime = Field(default_factory=datetime.now)
 
+    deleted_at: Optional[datetime] = Field(default=None)
+
     autor_id: int | None = Field(default=None, foreign_key="usuarios.id")
     categoria_id: int | None = Field(default=None, foreign_key="categorias.id")
 
