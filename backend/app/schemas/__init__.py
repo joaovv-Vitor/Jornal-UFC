@@ -1,2 +1,3 @@
 #__init.py__
 from .usuario import UsuarioBase, UsuarioCreate, UsuarioRead
+from .noticia import NoticiaBase, NoticiaCreate, NoticiaRead

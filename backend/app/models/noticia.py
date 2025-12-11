@@ -1,38 +1,38 @@
-from typing import TYPE_CHECKING, Optional
+# app/db/models/noticia.py
+from typing import TYPE_CHECKING, Optional, List
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from .usuario import Usuario
-    from .categoria import Categoria
-    from .comentario import Comentario
+    from app.models.usuario import Usuario
+    from app.models.categoria import Categoria
+    from app.models.comentario import Comentario  # <--- Agora existe!
 
-# --- Curtidas em Notícias ---
-class CurtidaNoticia(SQLModel, table=True):
-    __tablename__ = "curtidas_noticias"
-
-    # Chave primária composta (usuario + noticia) impede likes duplicados
-    usuario_id: int = Field(foreign_key="usuarios.id", primary_key=True)
-    noticia_id: int = Field(foreign_key="noticias.id", primary_key=True)
-    criado_em: datetime = Field(default_factory=datetime.now)
-
-    # Relacionamentos para facilitar a navegação
-    usuario: "Usuario" = Relationship(back_populates="curtidas_noticias")
-    noticia: "Noticia" = Relationship(back_populates="curtidas")
-
-# Tabela associativa pode ficar aqui ou em um arquivo separado se preferir
+# --- Tabela Associativa (Noticias <-> Tags) ---
 class NoticiasTags(SQLModel, table=True):
     noticia_id: int | None = Field(default=None, foreign_key="noticias.id", primary_key=True)
     tag_id: int | None = Field(default=None, foreign_key="tags.id", primary_key=True)
 
+# --- Model de Tag ---
 class Tag(SQLModel, table=True):
     __tablename__ = "tags"
     id: int | None = Field(default=None, primary_key=True)
-    nome: str
+    nome: str = Field(unique=True)
     slug: str = Field(unique=True)
     
-    noticias: list["Noticia"] = Relationship(back_populates="tags", link_model=NoticiasTags)
+    noticias: List["Noticia"] = Relationship(back_populates="tags", link_model=NoticiasTags)
 
+# --- Curtidas em Notícias ---
+class CurtidaNoticia(SQLModel, table=True):
+    __tablename__ = "curtidas_noticias"
+    usuario_id: int = Field(foreign_key="usuarios.id", primary_key=True)
+    noticia_id: int = Field(foreign_key="noticias.id", primary_key=True)
+    criado_em: datetime = Field(default_factory=datetime.now)
+
+    usuario: "Usuario" = Relationship(back_populates="curtidas_noticias")
+    noticia: "Noticia" = Relationship(back_populates="curtidas")
+
+# --- Model Principal de Noticia ---
 class Noticia(SQLModel, table=True):
     __tablename__ = "noticias"
 
@@ -50,12 +50,10 @@ class Noticia(SQLModel, table=True):
     autor_id: int | None = Field(default=None, foreign_key="usuarios.id")
     categoria_id: int | None = Field(default=None, foreign_key="categorias.id")
 
-    # Aspas para evitar importar Usuario e Categoria em tempo de execução
+    # Relacionamentos
     autor: Optional["Usuario"] = Relationship(back_populates="noticias")
-    categoria: Optional["Categoria"] = Relationship(back_populates="noticias")
-    comentarios: list["Comentario"] = Relationship(back_populates="noticia")
-    tags: list[Tag] = Relationship(back_populates="noticias", link_model=NoticiasTags)
+    categoria: Optional["Categoria"] = Relationship(back_populates="noticias") # <--- Conectado
     
-    # --- NOVO RELACIONAMENTO ---
-    curtidas: list["CurtidaNoticia"] = Relationship(back_populates="noticia")
-    
+    tags: List[Tag] = Relationship(back_populates="noticias", link_model=NoticiasTags)
+    curtidas: List["CurtidaNoticia"] = Relationship(back_populates="noticia")
+    comentarios: List["Comentario"] = Relationship(back_populates="noticia") # <--- Conectado
