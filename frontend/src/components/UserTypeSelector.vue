@@ -1,52 +1,47 @@
 <script setup lang="ts">
+import type { RoleEnum, RoleOption } from '../types/roles'
+
 const props = defineProps<{
-  label: string
-  modelValue: string
-  options: string[]
-}>()
+  modelValue: RoleEnum;
+  options: RoleOption[];
+}>();
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: RoleEnum): void;
+}>();
 
-function updateValue(event: Event) {
-  const target = event.target as HTMLSelectElement
-  emit('update:modelValue', target.value)
+function updateRole(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  emit('update:modelValue', target.value as RoleEnum);
 }
 </script>
 
 <template>
-  <div class="input-field">
-    <label>{{ label }}</label>
+  <div class="user-type-selector">
+    <label>Tipo de Usuário</label>
 
-    <select :value="modelValue" @change="updateValue">
-      <option disabled value="">Selecione...</option>
-      <option
-        v-for="opt in options"
-        :key="opt"
-        :value="opt"
+    <select :value="modelValue" @change="updateRole">
+      <option 
+        v-for="opt in options" 
+        :key="opt.value" 
+        :value="opt.value"
       >
-        {{ opt }}
+        {{ opt.label }}
       </option>
     </select>
   </div>
 </template>
 
 <style scoped>
-.input-field {
+.user-type-selector {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
-.input-field select {
+select {
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #444;
-  font-size: 15px;
-  background: none;
-}
-
-.input-field label {
-  font-weight: bold;
 }
 </style>

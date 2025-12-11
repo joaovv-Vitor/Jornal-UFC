@@ -46,7 +46,6 @@ function updateValue(event: Event) {
   flex-direction: column;
   gap: 4px;
   background: none;
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 .password-wrapper {
