@@ -3,12 +3,26 @@ from sqlmodel import SQLModel
 from datetime import datetime
 from typing import List, Optional
 
-# --- SCHEMAS DE TAG ---
-# Usado apenas para leitura dentro da notícia
+# --- SCHEMAS AUXILIARES ---
+
+class NoticiaImagemRead(SQLModel):
+    id: int
+    caminho: str
+
 class TagRead(SQLModel):
     id: int
     nome: str
     slug: str
+
+class CategoriaRead(SQLModel):
+    id: int
+    nome: str
+
+class AutorRead(SQLModel):
+    id: int
+    nome: str
+    email: str
+    # avatar: Optional[str] = None (Adicione se seu usuário tiver foto)
 
 # --- SCHEMAS DE NOTICIA ---
 
@@ -19,9 +33,9 @@ class NoticiaBase(SQLModel):
     conteudo: str
     categoria_id: Optional[int] = None
 
-# 2. Create: Validação (embora a gente use Form no Controller, é bom ter)
+# 2. Create: Validação
 class NoticiaCreate(NoticiaBase):
-    tags: List[str] = [] # O front manda uma lista de strings: ["Esporte", "UFC"]
+    tags: List[str] = [] 
 
 # 3. Read: O JSON que o Front-end recebe
 class NoticiaRead(NoticiaBase):
@@ -34,9 +48,17 @@ class NoticiaRead(NoticiaBase):
     
     autor_id: int
     
-    # Aqui está a mágica: O Pydantic converte a lista de objetos do banco 
-    # para essa lista de schemas automaticamente
+    # --- RELACIONAMENTOS ---
+    
+    # Lista de Tags
     tags: List[TagRead] = [] 
     
-    # Dica: Se quiser retornar o nome do autor, precisaremos fazer um ajuste no controller,
-    # mas por enquanto vamos manter simples.
+    # Categoria (Objeto completo, não só ID)
+    categoria: Optional[CategoriaRead] = None 
+    
+    # Autor (Para mostrar "Por Fulano")
+    autor: Optional[AutorRead] = None 
+
+    # --- NOVA LISTA DE GALERIA ---
+    # Aqui conectamos o schema que você criou no topo
+    imagens_galeria: List[NoticiaImagemRead] = []
