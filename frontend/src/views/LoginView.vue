@@ -20,9 +20,14 @@ const BASE_URL = 'http://localhost:8000/api/v1/auth'
 
 
 async function submit() {
-  loading.value = true
   errorMessage.value = ''
 
+  if (!form.email || !form.password) {
+    errorMessage.value = 'Por favor, preencha todos os campos (e-mail e senha).'
+    return // Interrompe a submissão
+  }
+
+  loading.value = true
 
   // O endpoint do FastAPI espera 'username' e 'password' no formato form-data
   // (OAuth2PasswordRequestForm), não JSON. O Axios facilita o envio disso.

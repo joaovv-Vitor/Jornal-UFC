@@ -23,7 +23,7 @@ class UsuarioCreate(UsuarioBase):
     def validar_regras_negocio(self):
         # Regra 1: Professor deve ter email institucional
         if self.role == RoleEnum.PROFESSOR:
-            if not self.email.endswith("@alu.ufc.br"):
+            if not self.email.endswith("@ufc.br"):
                 raise ValueError('Professores devem utilizar um e-mail institucional (@ufc.br).')
         
         # Regra 2: Bolsista deve informar quem é o orientador

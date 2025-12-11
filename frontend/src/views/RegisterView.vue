@@ -13,7 +13,7 @@ const router = useRouter()
 // Estado do formulário
 const form = reactive({
   nome: '',
-  email: '',
+  email: '',  
   senha: '',
   confirmarSenha: '',
   role: RoleEnum.LEITOR,
@@ -29,12 +29,25 @@ const isBolsista = computed(() => form.role === RoleEnum.BOLSISTA)
 const isProfessor = computed(() => form.role === RoleEnum.PROFESSOR)
 const passwordsMatch = computed(() => form.senha === form.confirmarSenha)
 
+// Nova computed property para verificar o domínio (opcional, mas limpa o código)
+const emailHasCorrectDomain = computed(() => {
+    if (isProfessor.value) {
+        return form.email.toLowerCase().endsWith('@ufc.br')
+    }
+    // Para outras roles, a validação é sempre True
+    return true; 
+});
+
 // Função de registro
 async function registerUser() {
   errorMessage.value = ''
   successMessage.value = ''
 
-  // Validações básicas
+  if (!form.nome || !form.email || !form.senha || !form.confirmarSenha) {
+    errorMessage.value = 'Por favor, preencha todos os campos obrigatórios.'
+    return
+  }
+
   if (!passwordsMatch.value) {
     errorMessage.value = 'As senhas não coincidem.'
     return
@@ -42,6 +55,11 @@ async function registerUser() {
 
   if (isBolsista.value && !form.email_orientador) {
     errorMessage.value = 'O e-mail do orientador é obrigatório para bolsistas.'
+    return
+  }
+
+  if (isProfessor.value && !emailHasCorrectDomain.value) {
+    errorMessage.value = 'Para se cadastrar como Professor, você deve usar um e-mail institucional (@ufc.br).'
     return
   }
 
@@ -70,12 +88,15 @@ async function registerUser() {
       setTimeout(() => router.push('/login'), 2500)
     }
   } catch (error: any) {
-    console.error('Erro no cadastro:', error.response?.data)
-    errorMessage.value =
-      error.response?.data?.detail || 'Erro inesperado ao criar conta.'
-  } finally {
-    loading.value = false
-  }
+      console.error('Erro no cadastro:', error.response?.data)
+      // Tentativa de pegar a mensagem de erro do backend (ex: email já existe, erro de domínio do backend)
+      errorMessage.value =
+        error.response?.data?.detail || 
+        error.response?.data?.[0]?.msg || // Se for erro de Pydantic como o que você viu
+        'Erro inesperado ao criar conta.'
+    } finally {
+        loading.value = false
+    }
 }
 </script>
 
@@ -95,6 +116,7 @@ async function registerUser() {
           type="email"
           placeholder="Seu email"
           required
+          :class="{ 'input-error': isProfessor && form.email.length > 0 && !emailHasCorrectDomain }"
         />
 
         <PasswordField label="Senha" v-model="form.senha" placeholder="Crie uma senha" required />
@@ -116,12 +138,16 @@ async function registerUser() {
           required
         />
 
+        <p v-if="isProfessor && form.email.length > 0 && !emailHasCorrectDomain" class="error-message">
+          O e-mail deve ser institucional (@ufc.br) para o perfil Professor.
+        </p>
+
         <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
         <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
 
         <button
           type="submit"
-          :disabled="loading || !passwordsMatch || !form.nome || !form.email || !form.senha"
+          :disabled="loading || !passwordsMatch || !form.nome || !form.email || !form.senha || (isBolsista && !form.email_orientador) || (isProfessor && !emailHasCorrectDomain)"
         >
           {{ loading ? 'Cadastrando...' : 'Registrar' }}
         </button>
