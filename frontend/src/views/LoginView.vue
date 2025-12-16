@@ -1,90 +1,41 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import InputField from '../components/InputField.vue'
-import PasswordField from '../components/PasswordField.vue'
-import axios from 'axios'
+import { useAuthStore } from '../store/auth.store'
 import { useRouter } from 'vue-router'
 
+import InputField from '../components/InputField.vue'
+import PasswordField from '../components/PasswordField.vue'
 
+const auth = useAuthStore()
 const router = useRouter()
+
 const form = reactive({
   email: '',
   password: '',
-  rememberMe: false,
+  rememberMe: false
 })
 
-
-const loading = ref(false)
 const errorMessage = ref('')
-const BASE_URL = 'http://localhost:8000/api/v1/auth'
 
-
-async function submit() {
+const submit = async () => {
   errorMessage.value = ''
-
-  if (!form.email || !form.password) {
-    errorMessage.value = 'Por favor, preencha todos os campos (e-mail e senha).'
-    return // Interrompe a submissão
-  }
-
-  loading.value = true
-
-  // O endpoint do FastAPI espera 'username' e 'password' no formato form-data
-  // (OAuth2PasswordRequestForm), não JSON. O Axios facilita o envio disso.
-  const form_data = new URLSearchParams();
-  form_data.append('username', form.email);
-  form_data.append('password', form.password);
-
-
   try {
-    // 1. Chamada de Login: POST /api/v1/auth/login
-    const response = await axios.post(`${BASE_URL}/login`, form_data, {
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-    })
-
-
-    // O backend retorna um Token (access_token)
-    const token = response.data.access_token
-
-
-    // 2. Armazenar o Token (usando localStorage/sessionStorage)
-    // Se 'Lembrar de mim' estiver marcado, use localStorage, senão use sessionStorage.
-    if (form.rememberMe) {
-        localStorage.setItem('auth_token', token)
-    } else {
-        sessionStorage.setItem('auth_token', token)
-    }
-
-
-    // 3. Redirecionar para a área logada (ex: /dashboard ou /noticias)
-    router.push('/home')
-
-
-  } catch (error: any) {
-    console.error('Erro de Login:', error)
-    // Captura a mensagem de erro do FastAPI (detalhe)
-    errorMessage.value = error.response?.data?.detail || 'Erro ao tentar logar. Verifique suas credenciais.'
-
-
-  } finally {
-    loading.value = false
+    await auth.login(form.email, form.password)
+    router.push('/')
+  } catch (e) {
+    errorMessage.value = 'Email ou senha inválidos'
   }
 }
 </script>
 
-
 <template>
   <div class="login-container">
-     <div class="logo-area">
+    <div class="logo-area">
       <img src="../assets/UFC_logo.png" alt="Logo UFC" />
     </div>
 
-
     <div class="login-card">
       <h1>Login</h1>
-
 
       <InputField
         label="Email"
@@ -93,34 +44,36 @@ async function submit() {
         placeholder="Digite seu email"
       />
 
-
       <PasswordField
         label="Senha"
         v-model="form.password"
         placeholder="Digite sua senha"
       />
 
-
       <div class="options-row">
         <label class="checkbox-container">
           <input type="checkbox" v-model="form.rememberMe" />
           Lembrar de mim
-          <span class="checkmark"></span>
         </label>
-       
-        <router-link to="/forgot-password" class="link">Esqueceu a senha?</router-link>
+
+        <router-link to="/forgot-password" class="link">
+          Esqueceu a senha?
+        </router-link>
       </div>
-     
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
+      <p v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </p>
 
-      <button @click="submit" :disabled="loading">
-        {{ loading ? 'Aguarde...' : 'Entrar' }}
+      <button @click="submit" :disabled="auth.loading">
+        {{ auth.loading ? 'Aguarde...' : 'Entrar' }}
       </button>
-     
+
       <p class="register-text">
         Não tem uma conta?
-        <router-link to="/register" class="link register-link">Registre-se aqui</router-link>
+        <router-link to="/register" class="link register-link">
+          Registre-se aqui
+        </router-link>
       </p>
     </div>
   </div>
