@@ -17,13 +17,33 @@ const form = reactive({
 
 const errorMessage = ref('')
 
+/**
+ * Tenta realizar a autenticação.
+ * O fluxo agora lida com o login (POST) e a busca de perfil (GET /usuarios/).
+ */
 const submit = async () => {
   errorMessage.value = ''
   try {
+    // 1. Envia as credenciais para a store
     await auth.login(form.email, form.password)
+    
+    // 2. Se o login e a busca de perfil funcionarem, redireciona para a home
     router.push('/')
-  } catch (e) {
-    errorMessage.value = 'Email ou senha inválidos'
+  } catch (e: any) {
+    // 3. Tratamento de erro detalhado:
+    
+    // Erro 401 ou 400 vindo do Backend (ex: "Usuário inativo" ou "Senha incorreta")
+    if (e.response?.data?.detail) {
+      errorMessage.value = e.response.data.detail
+    } 
+    // Erro lançado pela Store no fetchMe (ex: "Usuário não encontrado na listagem")
+    else if (e.message) {
+      errorMessage.value = e.message
+    } 
+    // Erro de conexão ou rede
+    else {
+      errorMessage.value = 'Erro de conexão com o servidor. Tente novamente.'
+    }
   }
 }
 </script>
@@ -133,6 +153,11 @@ button:active {
   transform: scale(0.97);
 }
 
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .options-row {
   display: flex;
   justify-content: space-between;
@@ -159,10 +184,9 @@ button:active {
 }
 
 .register-link {
-    font-weight: bold;
+  font-weight: bold;
 }
 
-/* Estilos de Checkbox simples */
 .checkbox-container {
   display: flex;
   align-items: center;
@@ -171,7 +195,6 @@ button:active {
   font-size: 14px;
 }
 
-/* Estilo para a mensagem de erro */
 .error-message {
   color: #d93025;
   background-color: #ffe8e8;
@@ -181,10 +204,5 @@ button:active {
   font-size: 14px;
   font-weight: bold;
   margin: 0;
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 </style>
