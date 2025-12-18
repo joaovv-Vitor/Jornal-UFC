@@ -11,12 +11,7 @@ export function buscarNoticia(slug: string) {
 
 // 💡 CORRIGIDO: Esperar e enviar FormData (para upload de arquivos)
 export function criarNoticia(formData: FormData) { 
-  return api.post('/noticias', formData, {
-    headers: {
-      // OBRIGATÓRIO: Garante que o Axios envie o Content-Type correto para o FastAPI
-      'Content-Type': 'multipart/form-data', 
-    },
-  })
+  return api.post('/noticias/', formData)
 }
 
 // 💡 CORRIGIDO: O endpoint de edição também precisa aceitar FormData para uploads opcionais

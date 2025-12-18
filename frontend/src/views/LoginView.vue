@@ -100,6 +100,9 @@ const submit = async () => {
 </template>
 
 <style scoped>
+body {
+  background-color: white;
+}
 .login-container {
   display: flex;
   justify-content: center;

@@ -41,15 +41,11 @@ const routes: RouteRecordRaw[] = [
         component: CriarNoticiaView,
         meta: { requiresAuth: true, requiredPermission: 'publisher' }
     },
-    // Adicione a rota de edição de notícias aqui, com a mesma proteção.
-    // {
-    //     path: '/noticias/editar/:id',
-    //     name: 'editar-noticia',
-    //     component: () => import('../views/noticias/NoticiaEditView.vue'),
-    //     meta: { requiresAuth: true, requiredPermission: 'publisher' }
-    // },
-    // Adicione outras rotas de feed/detalhes (que não exigem autenticação)
-    // ...
+   {
+    path: '/noticias/:slug',
+    name: 'noticia-detalhe',
+    component: () => import('../views/noticias/NoticiaDetalheView.vue')
+    }
 ]
 
 const router = createRouter({

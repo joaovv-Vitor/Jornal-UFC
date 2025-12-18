@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
+import CapaUploader from './CapaUploader.vue'
+import GaleriaUploader from './GaleriaUploader.vue'
 
-/**
- * Props
- * - initialData: usado no modo edição
- * - loading: desabilita o botão enquanto salva
- */
 const props = defineProps<{
   initialData?: {
     titulo?: string
@@ -13,19 +10,15 @@ const props = defineProps<{
     conteudo?: string
     tags?: string[]
     categoria_id?: number | null
+    imagem_capa?: string 
   }
   loading?: boolean
 }>()
 
-/**
- * Emits
- * - submit(FormData)
- */
 const emit = defineEmits<{
   (e: 'submit', payload: FormData): void
 }>()
 
-// Estado do formulário
 const form = reactive({
   titulo: props.initialData?.titulo ?? '',
   subtitulo: props.initialData?.subtitulo ?? '',
@@ -34,45 +27,24 @@ const form = reactive({
   categoria_id: props.initialData?.categoria_id ?? null
 })
 
-// Arquivos
+// 💡 Definindo tipos explicitamente para evitar erro de 'any'
 const imagemCapa = ref<File | null>(null)
 const galeria = ref<File[]>([])
-
-// Erros
 const errorMessage = ref('')
 
-// Validação mínima
 const isValid = computed(() => {
   return form.titulo.trim() && form.conteudo.trim()
 })
 
-// Handlers
-function onCapaChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0] // 💡 Usamos Encaminhamento Opcional para obter File | undefined
-
-  // 💡 MUDANÇA CRÍTICA: Se o arquivo existe (não é undefined), atribuímos. Caso contrário, é null.
-  if (file) {
-    imagemCapa.value = file
-  } else {
-    imagemCapa.value = null
-  }
+// Altere as chamadas dos componentes no template para incluir os tipos
+const handleCapaUpdate = (file: File | null) => { 
+  imagemCapa.value = file 
 }
 
-function onGaleriaChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const files = input.files
-  
-  // Garantir que files não é null
-  if (files) {
-    // Array.from lida bem com FileList, resultando em File[]
-    galeria.value = Array.from(files) 
-  } else {
-    galeria.value = []
-  }
+const handleGaleriaUpdate = (files: File[]) => { 
+  galeria.value = files 
 }
 
-// Submit
 function submit() {
   errorMessage.value = ''
 
@@ -81,32 +53,19 @@ function submit() {
     return
   }
 
-  if (!imagemCapa.value && !props.initialData) {
-    errorMessage.value = 'A imagem de capa é obrigatória.'
-    return
-  }
-
   const formData = new FormData()
-
   formData.append('titulo', form.titulo)
   formData.append('conteudo', form.conteudo)
 
-  if (form.subtitulo) {
-    formData.append('subtitulo', form.subtitulo)
-  }
-
-  if (form.tags) {
-    formData.append('tags', form.tags)
-  }
-
-  if (form.categoria_id) {
-    formData.append('categoria_id', String(form.categoria_id))
-  }
+  if (form.subtitulo) formData.append('subtitulo', form.subtitulo)
+  if (form.tags) formData.append('tags', form.tags)
+  if (form.categoria_id) formData.append('categoria_id', String(form.categoria_id))
 
   if (imagemCapa.value) {
     formData.append('imagem_capa', imagemCapa.value)
   }
 
+  // 💡 Loop correto para o FastAPI receber múltiplos arquivos
   galeria.value.forEach((file) => {
     formData.append('galeria', file)
   })
@@ -117,49 +76,38 @@ function submit() {
 
 <template>
   <form class="noticia-form" @submit.prevent="submit">
-    <h2>Notícia</h2>
-
     <div class="field">
       <label>Título *</label>
-      <input v-model="form.titulo" type="text" placeholder="Título da notícia" />
+      <input v-model="form.titulo" type="text" placeholder="Digite o título" />
     </div>
 
     <div class="field">
       <label>Subtítulo</label>
-      <input v-model="form.subtitulo" type="text" placeholder="Subtítulo (opcional)" />
+      <input v-model="form.subtitulo" type="text" placeholder="Subtítulo opcional" />
     </div>
 
     <div class="field">
       <label>Conteúdo *</label>
-      <textarea
-        v-model="form.conteudo"
-        rows="8"
-        placeholder="Conteúdo da notícia"
-      />
+      <textarea v-model="form.conteudo" rows="8" placeholder="Escreva o conteúdo aqui..." />
     </div>
 
     <div class="field">
       <label>Tags</label>
-      <input
-        v-model="form.tags"
-        type="text"
-        placeholder="Ex: ufc, pesquisa, tecnologia"
+      <input v-model="form.tags" type="text" placeholder="Ex: ufc, tecnologia, educação" />
+    </div>
+
+    <div class="field">
+      <CapaUploader 
+        :initial-url="props.initialData?.imagem_capa" 
+        @update:file="handleCapaUpdate" 
       />
     </div>
 
     <div class="field">
-      <label>Imagem de capa *</label>
-      <input type="file" accept="image/*" @change="onCapaChange" />
+      <GaleriaUploader @update:files="handleGaleriaUpdate" />
     </div>
 
-    <div class="field">
-      <label>Galeria (opcional)</label>
-      <input type="file" accept="image/*" multiple @change="onGaleriaChange" />
-    </div>
-
-    <p v-if="errorMessage" class="error-message">
-      {{ errorMessage }}
-    </p>
+    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
     <button type="submit" :disabled="loading">
       {{ loading ? 'Salvando...' : 'Salvar Notícia' }}
@@ -168,54 +116,17 @@ function submit() {
 </template>
 
 <style scoped>
-.noticia-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-input,
-textarea {
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-textarea {
-  resize: vertical;
-}
-
+.noticia-form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+input, textarea { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+textarea { resize: vertical; }
 button {
-  margin-top: 10px;
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-  background-color: #9c060d;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
+  margin-top: 10px; padding: 12px; border: none; border-radius: 6px;
+  background-color: #9c060d; color: white; font-size: 16px; font-weight: bold; cursor: pointer;
 }
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
+button:disabled { opacity: 0.6; cursor: not-allowed; }
 .error-message {
-  color: #d93025;
-  background-color: #ffe8e8;
-  padding: 8px;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: bold;
+  color: #d93025; background-color: #ffe8e8; padding: 8px; border-radius: 4px;
+  text-align: center; font-size: 14px; font-weight: bold;
 }
 </style>
