@@ -88,7 +88,7 @@ const getImageUrl = (path: string | undefined | null): string => {
             <span class="categoria" v-if="item.categoria">{{ item.categoria.nome }}</span>
             <h3>{{ item.titulo }}</h3>
             <p>{{ item.subtitulo || item.conteudo.substring(0, 100) + '...' }}</p>
-            <router-link :to="`/noticia/${item.slug}`" class="read-more">Ler mais →</router-link>
+            <router-link :to="`/noticias/${item.slug}`" class="read-more">Ler mais →</router-link>
           </div>
         </article>
       </div>
