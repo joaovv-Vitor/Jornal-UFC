@@ -40,6 +40,18 @@ const routes: RouteRecordRaw[] = [
         name: 'criar-noticia',
         component: CriarNoticiaView,
         meta: { requiresAuth: true, requiredPermission: 'publisher' }
+    },{
+        path: '/minhas-noticias',
+        name: 'minhas-noticias',
+        component: () => import('../views/noticias/MinhasNoticiasView.vue'),
+        meta: { requiresAuth: true, requiredPermission: 'publisher' }
+    },
+    // 💡 Rota de Edição (Adicionada para suportar a gestão de notícias)
+    {
+        path: '/noticias/:slug/editar',
+        name: 'editar-noticia',
+        component: () => import('../views/noticias/NoticiaEditView.vue'),
+        meta: { requiresAuth: true, requiredPermission: 'publisher' }
     },
    {
     path: '/noticias/:slug',

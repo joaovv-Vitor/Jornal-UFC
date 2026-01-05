@@ -42,6 +42,9 @@ const getImageUrl = (path: string | undefined | null): string => {
     <nav class="navbar">
       <h1>Jornal UFC</h1>
       <div class="user-controls">
+         <span v-if="authStore.user" class="user-name">
+          Olá, {{ authStore.user.nome }}
+        </span>
         <router-link 
           v-if="authStore.isPublisher" 
           to="/noticias/criar" 
@@ -49,10 +52,11 @@ const getImageUrl = (path: string | undefined | null): string => {
         >
           + Nova Publicação
         </router-link>
+        <router-link class="btn-myNotice" v-if="authStore.isPublisher" to="/minhas-noticias">
+          Minhas Notícias
+        </router-link>
 
-        <span v-if="authStore.user" class="user-name">
-          Olá, {{ authStore.user.nome }}
-        </span>
+       
         
         <button 
           v-if="authStore.isAuthenticated" 
@@ -101,7 +105,7 @@ const getImageUrl = (path: string | undefined | null): string => {
 </template>
 
 <style scoped>
-/* --- ADIÇÕES DE ESTILO --- */
+
 .btn-create {
   background-color: #28a745;
   color: white;
@@ -111,6 +115,22 @@ const getImageUrl = (path: string | undefined | null): string => {
   font-weight: bold;
   font-size: 0.9rem;
   margin-right: 10px;
+}
+.btn-myNotice {
+  background-color: #023b79;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-right: 10px;
+}
+.content-header  {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  margin-left: 40%;
+  color: #ffffff;
 }
 
 span.user-name {
@@ -135,7 +155,7 @@ span.user-name {
 }
 
 .noticia-card {
-  background: white;
+  background: rgb(255, 255, 255);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -164,7 +184,9 @@ span.user-name {
 }
 
 h3 { margin: 10px 0; font-size: 1.2rem; color: #333; }
+h1{color: rgb(0, 31, 71);}
 p { color: #666; font-size: 0.9rem; margin-bottom: 15px; }
+
 
 .read-more {
   margin-top: auto;
@@ -184,5 +206,6 @@ p { color: #666; font-size: 0.9rem; margin-bottom: 15px; }
   background-color: #f8f9fa;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
+
 /* ... resto do seu CSS */
 </style>

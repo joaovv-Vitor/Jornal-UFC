@@ -70,7 +70,8 @@ const dataFormatada = computed(() => {
 .noticia-card {
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   height: 100%; /* Garante que todos os cards tenham o mesmo tamanho no grid */
   display: flex;

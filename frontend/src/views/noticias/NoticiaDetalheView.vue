@@ -31,7 +31,7 @@ onMounted(async () => {
   <div class="detalhe-wrapper">
     <div v-if="loading" class="msg">Carregando...</div>
     <article v-else-if="noticia" class="noticia-body">
-      <button @click="router.back()">← Voltar</button>
+      <button class="back-btn" @click="router.back()">← Voltar</button>
       
       <img v-if="noticia.imagem_capa" :src="getImageUrl(noticia.imagem_capa)" class="capa">
       
@@ -49,10 +49,34 @@ onMounted(async () => {
 
 <style scoped>
 /* Garante que o fundo aqui seja claro para você ler o texto */
-.detalhe-wrapper { background: #f4f4f4; min-height: 100vh; padding: 20px; color: #333; }
-.noticia-body { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; }
-.capa { width: 100%; border-radius: 8px; margin: 20px 0; }
-.content { line-height: 1.6; white-space: pre-wrap; }
-.galeria { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-.galeria img { width: 100%; height: 150px; object-fit: cover; }
+.detalhe-wrapper { 
+  background: #f4f4f4; min-height: 100vh; padding: 20px; color: #333; 
+}
+.noticia-body { 
+  max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.capa { 
+  width: 100%; border-radius: 8px; margin: 20px 0; 
+}
+.content { 
+  line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word;
+}
+.galeria { 
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; 
+}
+.galeria img { 
+  width: 100%; height: 150px; object-fit: cover; 
+  }
+  .back-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  }
+  .back-btn:hover {
+  color: #f30606;
+  }
 </style>

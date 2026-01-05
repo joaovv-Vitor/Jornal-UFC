@@ -46,6 +46,9 @@ async function handleSubmit(formData: FormData) {
 </template>
 
 <style scoped>
+  h1{
+    color: white;
+  }
 .create-view-container {
   max-width: 800px;
   margin: 40px auto;
@@ -62,10 +65,14 @@ async function handleSubmit(formData: FormData) {
 .back-btn {
   background: none;
   border: none;
-  color: #9c060d;
+  color: #666;
   cursor: pointer;
-  font-weight: bold;
-}
+  font-size: 1rem;
+  font-weight: 500;
+  }
+  .back-btn:hover {
+  color: #f30606;
+  }
 
 .form-card {
   background: white;

@@ -118,26 +118,18 @@ onMounted(carregarDados)
 
 .back-btn {
   background: none;
-  border: 2px solid #9c060d;
-  color: #9c060d;
-  padding: 8px 16px;
-  border-radius: 8px;
+  border: none;
+  color: #666;
   cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.back-btn:hover {
-  background: #9c060d;
-  color: white;
-}
-
+  font-size: 1rem;
+  font-weight: 500;
+  }
+  .back-btn:hover {
+  color: #f30606;
+  }
 h1 {
   font-size: 1.8rem;
-  color: #333;
+  color: #ffffff;
   margin: 0;
 }
 
