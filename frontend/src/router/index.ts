@@ -40,7 +40,8 @@ const routes: RouteRecordRaw[] = [
         name: 'criar-noticia',
         component: CriarNoticiaView,
         meta: { requiresAuth: true, requiredPermission: 'publisher' }
-    },{
+    },
+    {
         path: '/minhas-noticias',
         name: 'minhas-noticias',
         component: () => import('../views/noticias/MinhasNoticiasView.vue'),
@@ -57,6 +58,12 @@ const routes: RouteRecordRaw[] = [
     path: '/noticias/:slug',
     name: 'noticia-detalhe',
     component: () => import('../views/noticias/NoticiaDetalheView.vue')
+    },
+    {
+        path: '/categorias',
+        name: 'categorias',
+        component: () => import('../views/CategoriasView.vue'),
+        meta: { requiresAuth: true, requiredPermission: 'admin' }
     }
 ]
 
@@ -98,6 +105,13 @@ router.beforeEach(async (to, from, next) => {
         if (!authStore.isPublisher) {
             alert('Acesso negado: Você não tem permissão para publicar notícias.')
             return next({ name: 'feed' }) // Redireciona para a home
+        }
+    }
+
+    if (requiredPermission === 'admin' && authStore.isAuthenticated) {
+        if (!authStore.isAdminOrProfessor) {
+            alert('Acesso negado: Apenas administradores e professores podem gerenciar categorias.')
+            return next({ name: 'feed' })
         }
     }
 

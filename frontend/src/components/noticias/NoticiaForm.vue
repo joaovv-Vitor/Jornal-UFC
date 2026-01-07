@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import CapaUploader from './CapaUploader.vue'
 import GaleriaUploader from './GaleriaUploader.vue'
+import { listarCategorias } from '../../services/categorias.api'
+import type { Categoria } from '../../types/categoria'
 
 const props = defineProps<{
   initialData?: {
@@ -31,6 +33,8 @@ const form = reactive({
 const imagemCapa = ref<File | null>(null)
 const galeria = ref<File[]>([])
 const errorMessage = ref('')
+const categorias = ref<Categoria[]>([])
+const loadingCategorias = ref(true)
 
 const isValid = computed(() => {
   return form.titulo.trim() && form.conteudo.trim()
@@ -44,6 +48,18 @@ const handleCapaUpdate = (file: File | null) => {
 const handleGaleriaUpdate = (files: File[]) => { 
   galeria.value = files 
 }
+
+// Carrega categorias ao montar o componente
+onMounted(async () => {
+  try {
+    const response = await listarCategorias()
+    categorias.value = response.data
+  } catch (error) {
+    console.error('Erro ao carregar categorias:', error)
+  } finally {
+    loadingCategorias.value = false
+  }
+})
 
 function submit() {
   errorMessage.value = ''
@@ -92,6 +108,16 @@ function submit() {
     </div>
 
     <div class="field">
+      <label>Categoria</label>
+      <select v-model.number="form.categoria_id" :disabled="loadingCategorias">
+        <option :value="null">Selecione uma categoria (opcional)</option>
+        <option v-for="categoria in categorias" :key="categoria.id" :value="categoria.id">
+          {{ categoria.nome }}
+        </option>
+      </select>
+    </div>
+
+    <div class="field">
       <label>Tags</label>
       <input v-model="form.tags" type="text" placeholder="Ex: ufc, tecnologia, educação" />
     </div>
@@ -118,8 +144,10 @@ function submit() {
 <style scoped>
 .noticia-form { display: flex; flex-direction: column; gap: 16px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-input, textarea { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+input, textarea, select { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
 textarea { resize: vertical; }
+select { cursor: pointer; background-color: white; }
+select:disabled { opacity: 0.6; cursor: not-allowed; }
 button {
   margin-top: 10px; padding: 12px; border: none; border-radius: 6px;
   background-color: #9c060d; color: white; font-size: 16px; font-weight: bold; cursor: pointer;

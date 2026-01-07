@@ -55,9 +55,13 @@ const getImageUrl = (path: string | undefined | null): string => {
         <router-link class="btn-myNotice" v-if="authStore.isPublisher" to="/minhas-noticias">
           Minhas Notícias
         </router-link>
-
-       
-        
+        <router-link 
+          v-if="authStore.isAdminOrProfessor" 
+          to="/categorias" 
+          class="btn-categorias"
+        >
+          Gerenciar Categorias
+        </router-link>
         <button 
           v-if="authStore.isAuthenticated" 
           @click="handleLogout" 
@@ -126,6 +130,16 @@ const getImageUrl = (path: string | undefined | null): string => {
   font-size: 0.9rem;
   margin-right: 10px;
 }
+.btn-categorias {
+  background-color: #6f42c1;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-right: 10px;
+}
 .content-header  {
   font-size: 1.5rem;
   margin-bottom: 20px;
@@ -145,6 +159,7 @@ span.user-name {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
 }
 
 .noticias-grid {
@@ -152,6 +167,7 @@ span.user-name {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
   margin-top: 20px;
+  margin-left: 20px;
 }
 
 .noticia-card {

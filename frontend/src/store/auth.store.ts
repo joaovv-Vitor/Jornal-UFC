@@ -31,6 +31,10 @@ export const useAuthStore = defineStore('auth', {
             const publisherRoles = [RoleEnum.PROFESSOR, RoleEnum.BOLSISTA, RoleEnum.ADMIN]
             return publisherRoles.includes(state.user.role)
         },
+        isAdminOrProfessor: (state) => {
+            if (!state.user?.role) return false
+            return state.user.role === RoleEnum.ADMIN || state.user.role === RoleEnum.PROFESSOR
+        },
         userRole: (state) => state.user?.role || null,
     },
 

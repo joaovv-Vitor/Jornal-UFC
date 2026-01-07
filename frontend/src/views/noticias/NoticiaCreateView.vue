@@ -75,10 +75,6 @@ async function handleSubmit(formData: FormData) {
   .back-btn:hover {
   color: #f30606;
   }
-
-
-
-  
   
 .form-card {
   background: white;
