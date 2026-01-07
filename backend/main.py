@@ -1,6 +1,8 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import engine
 from sqlmodel import SQLModel
@@ -8,6 +10,9 @@ from sqlmodel import SQLModel
 # Importar modelos
 from app import models
 from app.api.router import api_router
+
+# Garante que a pasta static/images existe
+os.makedirs("static/images", exist_ok=True)
 
 
 @asynccontextmanager
@@ -40,5 +45,10 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "API do Jornal UFC está rodando!", "docs": "/docs"}
+
+# ----------------------
+# Arquivos Estáticos (Imagens)
+# ----------------------
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

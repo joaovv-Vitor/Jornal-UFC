@@ -63,9 +63,11 @@ async function handleSubmit(formData: FormData) {
 }
 
 .back-btn {
-  background: none;
+  background-color: white;
+  padding: 8px 16px;
   border: none;
-  color: #666;
+  border-radius: 4px;
+  color: #000;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
@@ -74,6 +76,10 @@ async function handleSubmit(formData: FormData) {
   color: #f30606;
   }
 
+
+
+  
+  
 .form-card {
   background: white;
   padding: 30px;
