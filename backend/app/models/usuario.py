@@ -4,9 +4,13 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
+    # Removemos CurtidaComentario daqui
     from .noticia import Noticia, CurtidaNoticia
-    from .comentario import Comentario, CurtidaComentario
-    from .evento import Evento
+    from .comentario import Comentario
+    
+    # IMPORTANTE: Se o arquivo app/models/evento.py não existir, 
+    # comente a linha abaixo para não dar erro 500.
+    from .evento import Evento 
 
 # Definindo os papeis fixos do sistema
 class RoleEnum(str, Enum):
@@ -22,36 +26,34 @@ class Usuario(SQLModel, table=True):
     nome: str
     email: str = Field(unique=True, index=True)
     senha_hash: str
-
-    
     
     # Define o papel do usuário (Padrão é leitor)
     role: RoleEnum = Field(default=RoleEnum.LEITOR)
 
-    #validando professor
+    # validando professor/usuário ativo
     is_active: bool = Field(default=True)
     
     criado_em: datetime = Field(default_factory=datetime.now)
 
-    # --- HIERARQUIA (Quem é o chefe?) ---
-    # Se for Bolsista, esse campo guarda o ID do Professor
+    # --- HIERARQUIA (Orientador <-> Bolsista) ---
     orientador_id: int | None = Field(default=None, foreign_key="usuarios.id")
 
-    # Relacionamento para acessar o objeto do Professor (Orientador)
-    # remote_side=[id] é OBRIGATÓRIO em auto-relacionamentos no SQLModel/SQLAlchemy
     orientador: Optional["Usuario"] = Relationship(
         back_populates="bolsistas", 
         sa_relationship_kwargs={"remote_side": "Usuario.id"}
     )
 
-    # Relacionamento para o Professor ver sua lista de alunos
     bolsistas: List["Usuario"] = Relationship(back_populates="orientador")
 
-    # --- Relacionamentos de Conteúdo ---
-    noticias: List["Noticia"] = Relationship(back_populates="autor")
-    comentarios: List["Comentario"] = Relationship(back_populates="usuario")
-    eventos: List["Evento"] = Relationship(back_populates="usuario")
+    # --- RELACIONAMENTOS DE CONTEÚDO ---
     
-    # --- Relacionamentos de Curtidas ---
+    noticias: List["Noticia"] = Relationship(back_populates="autor")
+    
+    comentarios: List["Comentario"] = Relationship(back_populates="usuario")
+    
+    # Curtidas em Notícias (O que você queria)
     curtidas_noticias: List["CurtidaNoticia"] = Relationship(back_populates="usuario")
-    curtidas_comentarios: List["CurtidaComentario"] = Relationship(back_populates="usuario")
+
+    # --- RELACIONAMENTOS FUTUROS ---
+    # Se Evento já existir, mantenha. Se não, comente para evitar erro "failed to locate name".
+    eventos: List["Evento"] = Relationship(back_populates="usuario")

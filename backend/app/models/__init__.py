@@ -8,3 +8,5 @@ from .imagem import NoticiaImagem
 from .curtida import CurtidaNoticia
 from .noticia import Noticia
 from .evento import Evento
+
+from .curtida import CurtidaNoticia
