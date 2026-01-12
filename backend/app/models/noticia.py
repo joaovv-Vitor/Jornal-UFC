@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
 # --- IMPORTAÇÕES (RUNTIME) ---
-# Importamos as classes reais para que o SQLModel saiba criar as relações no banco
 from app.models.tag import Tag, NoticiasTags
 from app.models.imagem import NoticiaImagem
 from app.models.curtida import CurtidaNoticia
@@ -34,18 +33,16 @@ class Noticia(SQLModel, table=True):
 
     # --- RELACIONAMENTOS ---
     
-    # Usuario e Categoria
     autor: Optional["Usuario"] = Relationship(back_populates="noticias")
     categoria: Optional["Categoria"] = Relationship(back_populates="noticias")
     
-    # Tags (Many-to-Many)
     tags: List[Tag] = Relationship(back_populates="noticias", link_model=NoticiasTags)
-    
-    # Curtidas (Link Table explícita)
     curtidas: List[CurtidaNoticia] = Relationship(back_populates="noticia")
-    
-    # Comentários
     comentarios: List["Comentario"] = Relationship(back_populates="noticia")
-    
-    # Galeria (One-to-Many)
     imagens_galeria: List[NoticiaImagem] = Relationship(back_populates="noticia")
+
+    # --- [IMPORTANTE] PROPRIEDADE CALCULADA ---
+    # Isso resolve o erro "object has no field curtidas_count"
+    @property
+    def curtidas_count(self) -> int:
+        return len(self.curtidas)

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import UploadFile
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 # --- IMPORTAÇÕES CORRETAS (MODELOS SEPARADOS) ---
 # Importamos cada entidade do seu respectivo arquivo para evitar erros de ciclo/duplicação
@@ -13,6 +13,7 @@ from app.models.noticia import Noticia
 from app.models.tag import Tag
 from app.models.imagem import NoticiaImagem
 from app.models.usuario import Usuario
+from app.models.curtida import CurtidaNoticia
 
 from app.core.utils import salvar_imagem
 
@@ -125,9 +126,9 @@ class NoticiaService:
         return self.session.exec(
             select(Noticia)
             .where(Noticia.deleted_at == None)
+            .order_by(Noticia.criado_em.desc())
             .offset(skip)
             .limit(limit)
-            .order_by(Noticia.criado_em.desc())
         ).all()
 
     def buscar_por_slug(self, slug: str) -> Optional[Noticia]:
@@ -208,3 +209,44 @@ class NoticiaService:
         self.session.add(noticia)
         self.session.commit()
         self.session.refresh(noticia)
+
+    def alternar_curtida(self, noticia_id: int, usuario_id: int) -> dict:
+        """
+        Lógica de Toggle:
+        - Se já existe: remove (descurtir).
+        - Se não existe: cria (curtir).
+        Retorna o estado final e o total atualizado.
+        """
+        # 1. Busca se já existe a curtida (Chave Composta)
+        curtida_existente = self.session.exec(
+            select(CurtidaNoticia)
+            .where(CurtidaNoticia.usuario_id == usuario_id)
+            .where(CurtidaNoticia.noticia_id == noticia_id)
+        ).first()
+
+        estado_final = False
+
+        if curtida_existente:
+            # REMOVER (Descurtir)
+            self.session.delete(curtida_existente)
+            self.session.commit()
+            estado_final = False
+        else:
+            # ADICIONAR (Curtir)
+            nova_curtida = CurtidaNoticia(usuario_id=usuario_id, noticia_id=noticia_id)
+            self.session.add(nova_curtida)
+            self.session.commit()
+            estado_final = True
+
+        # 2. Conta o total atualizado para devolver ao front
+        # (Mais performático que carregar a lista inteira de usuários)
+        total = self.session.exec(
+            select(func.count())
+            .select_from(CurtidaNoticia)
+            .where(CurtidaNoticia.noticia_id == noticia_id)
+        ).one()
+
+        return {
+            "curtido_pelo_usuario": estado_final,
+            "total_curtidas": total
+        }

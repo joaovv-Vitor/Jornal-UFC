@@ -60,5 +60,13 @@ class NoticiaRead(NoticiaBase):
     autor: Optional[AutorRead] = None 
 
     # --- NOVA LISTA DE GALERIA ---
-    # Aqui conectamos o schema que você criou no topo
     imagens_galeria: List[NoticiaImagemRead] = []
+
+    # curtidas
+    curtidas_count: int = 0
+
+
+# Resposta leve para o botão de curtir (AJAX/Fetch)
+class CurtidaResponse(SQLModel):
+    curtido_pelo_usuario: bool  # True se acabou de curtir, False se descurtiu
+    total_curtidas: int         # Novo contador para atualizar a tela
