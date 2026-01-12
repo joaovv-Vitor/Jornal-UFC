@@ -5,7 +5,9 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import UploadFile
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, col, or_
+from sqlalchemy import extract # Para extrair ano/mês
+
 
 # --- IMPORTAÇÕES CORRETAS (MODELOS SEPARADOS) ---
 # Importamos cada entidade do seu respectivo arquivo para evitar erros de ciclo/duplicação
@@ -14,8 +16,11 @@ from app.models.tag import Tag
 from app.models.imagem import NoticiaImagem
 from app.models.usuario import Usuario
 from app.models.curtida import CurtidaNoticia
+from app.models.categoria import Categoria
 
 from app.core.utils import salvar_imagem
+
+
 
 class NoticiaService:
     def __init__(self, session: Session):
@@ -122,14 +127,59 @@ class NoticiaService:
 
     # --- MÉTODOS DE LEITURA (CONSIDERANDO SOFT DELETE) ---
 
-    def listar_noticias(self, skip: int = 0, limit: int = 10) -> List[Noticia]:
-        return self.session.exec(
-            select(Noticia)
-            .where(Noticia.deleted_at == None)
-            .order_by(Noticia.criado_em.desc())
-            .offset(skip)
-            .limit(limit)
-        ).all()
+    def listar_noticias(
+        self, 
+        skip: int = 0, 
+        limit: int = 10,
+        termo_busca: Optional[str] = None,    
+        categoria_slug: Optional[str] = None, 
+        tag_slug: Optional[str] = None,       
+        ano: Optional[int] = None,            
+        mes: Optional[int] = None             
+    ) -> List[Noticia]:
+        """
+        Busca poderosa combinando Texto, Categoria, Tag e Data.
+        """
+        # Começa com a query base (apenas não deletados)
+        query = select(Noticia).where(Noticia.deleted_at == None)
+
+        # [US 04] - BUSCA TEXTUAL
+        # Procura no Título OU Subtítulo OU Nome do Autor
+        if termo_busca:
+            # Precisamos fazer Join com Usuario para buscar pelo nome dele
+            query = query.join(Usuario, isouter=True)
+            
+            query = query.where(
+                or_(
+                    col(Noticia.titulo).icontains(termo_busca),
+                    col(Noticia.subtitulo).icontains(termo_busca),
+                    col(Usuario.nome).icontains(termo_busca)
+                )
+            )
+
+        # [US 12] - FILTRO POR CATEGORIA
+        if categoria_slug:
+            # Join com Categoria para filtrar pelo slug (ex: 'esporte')
+            query = query.join(Categoria).where(Categoria.slug == categoria_slug)
+
+        # [US 12] - FILTRO POR TAG
+        if tag_slug:
+            # Join Mágico do SQLModel: Entra na lista de tags da notícia e filtra
+            query = query.join(Noticia.tags).where(Tag.slug == tag_slug)
+
+        # [US 12] - FILTRO POR DATA (ANO)
+        if ano:
+            query = query.where(extract('year', Noticia.criado_em) == ano)
+
+        # [US 12] - FILTRO POR DATA (MÊS)
+        if mes:
+            query = query.where(extract('month', Noticia.criado_em) == mes)
+
+        # Ordenação e Paginação
+        query = query.order_by(Noticia.criado_em.desc())
+        query = query.offset(skip).limit(limit)
+
+        return self.session.exec(query).unique().all()
 
     def buscar_por_slug(self, slug: str) -> Optional[Noticia]:
         return self.session.exec(
