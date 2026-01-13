@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue' // Adicionado ref e onMounted
+import { ref, onMounted, computed } from 'vue' // Adicionado ref e onMounted
 import { useAuthStore } from '../store/auth.store'
 import { useRouter } from 'vue-router'
 import { listarNoticias } from '../services/noticias.api' // Adicionado service
@@ -11,6 +11,33 @@ const router = useRouter()
 // --- ADIÇÕES DE ESTADO ---
 const noticias = ref<Noticia[]>([])
 const loading = ref(true)
+const termoBusca = ref('')
+const categoriaFiltro = ref('')
+
+// Filtra as notícias localmente (Client-Side)
+const noticiasFiltradas = computed(() => {
+  return noticias.value.filter(noticia => {
+    const termo = termoBusca.value.toLowerCase()
+    const matchTexto = 
+      noticia.titulo.toLowerCase().includes(termo) || 
+      (noticia.subtitulo && noticia.subtitulo.toLowerCase().includes(termo))
+    
+    const matchCategoria = categoriaFiltro.value 
+      ? noticia.categoria?.nome === categoriaFiltro.value 
+      : true
+      
+    return matchTexto && matchCategoria
+  })
+})
+
+// Extrai categorias das notícias carregadas para preencher o select
+const categoriasDisponiveis = computed(() => {
+  const cats = new Set<string>()
+  noticias.value.forEach(n => {
+    if (n.categoria?.nome) cats.add(n.categoria.nome)
+  })
+  return Array.from(cats)
+})
 
 const handleLogout = () => {
   authStore.logout()
@@ -79,12 +106,27 @@ const getImageUrl = (path: string | undefined | null): string => {
     <main class="content">
       <header class="content-header">
         <h2>Feed de Notícias</h2>
+        
+        <div class="filters">
+          <input 
+            v-model="termoBusca" 
+            type="text" 
+            placeholder="Pesquisar..." 
+            class="search-input"
+          />
+          <select v-model="categoriaFiltro" class="cat-select">
+            <option value="">Todas as Categorias</option>
+            <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">
+              {{ cat }}
+            </option>
+          </select>
+        </div>
       </header>
 
       <div v-if="loading" class="loading">Carregando notícias...</div>
 
       <div v-else class="noticias-grid">
-        <article v-for="item in noticias" :key="item.id" class="noticia-card">
+        <article v-for="item in noticiasFiltradas" :key="item.id" class="noticia-card">
           <div class="card-image" v-if="item.imagem_capa">
             <img 
               :src="getImageUrl(item.imagem_capa)" 
@@ -145,6 +187,19 @@ const getImageUrl = (path: string | undefined | null): string => {
   margin-bottom: 20px;
   margin-left: 40%;
   color: #ffffff;
+}
+
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+.search-input, .cat-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
 }
 
 span.user-name {

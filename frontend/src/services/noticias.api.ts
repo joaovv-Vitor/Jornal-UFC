@@ -9,14 +9,14 @@ export function buscarNoticia(slug: string) {
   return api.get<Noticia>(`/noticias/${slug}`)
 }
 
-// 💡 CORRIGIDO: Esperar e enviar FormData (para upload de arquivos)
+
 export function criarNoticia(formData: FormData) { 
   return api.post('/noticias/', formData)
 }
 
-// 💡 CORRIGIDO: O endpoint de edição também precisa aceitar FormData para uploads opcionais
+
 export function atualizarNoticia(id: number, formData: FormData) { 
-  return api.patch(`/noticias/${id}`, formData, { // O método é PATCH no seu backend
+  return api.patch(`/noticias/${id}`, formData, { // O método é PATCH
     headers: {
       'Content-Type': 'multipart/form-data', 
     },
