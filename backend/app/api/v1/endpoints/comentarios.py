@@ -1,42 +1,58 @@
-from typing import List
-from fastapi import APIRouter, HTTPException, status, Depends
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, status, Header
+from jose import jwt, JWTError
+from sqlmodel import select
 
 from app.core.database import SessionDep
 from app.core.deps import CurrentUser
+from app.core.config import settings
+from app.models.usuario import RoleEnum, Usuario
 from app.schemas.comentario import ComentarioCreate, ComentarioRead
 from app.services.comentario_service import ComentarioService
-from app.services.noticia_service import NoticiaService # Para verificar dono da notícia
+from app.services.noticia_service import NoticiaService
 
 router = APIRouter()
 
-# --- [US 08] LISTAR COMENTÁRIOS DE UMA NOTÍCIA ---
-# GET /noticias/{id}/comentarios
+# --- HELPER PARA TOKEN OPCIONAL ---
+def get_optional_user(session: SessionDep, authorization: str) -> Optional[Usuario]:
+    """Extrai usuário se o token existir e for válido, senão retorna None."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email = payload.get("sub")
+        if email:
+            return session.exec(select(Usuario).where(Usuario.email == email)).first()
+    except (JWTError, Exception):
+        return None
+    return None
+
+# --- [US 08] LISTAR COMENTÁRIOS ---
 @router.get("/noticia/{noticia_id}", response_model=List[ComentarioRead])
 def listar_comentarios_da_noticia(
     noticia_id: int,
-    session: SessionDep
+    session: SessionDep,
+    authorization: Optional[str] = Header(None)
 ):
-    """
-    Lista comentários públicos de uma notícia.
-    Não exibe comentários ocultos.
-    """
     service = ComentarioService(session)
-    return service.listar_por_noticia(noticia_id=noticia_id, incluir_ocultos=False)
-
+    user = get_optional_user(session, authorization)
+    
+    # Define se mostra ocultos: Se for ADMIN, PROFESSOR ou BOLSISTA
+    incluir_ocultos = False
+    if user and user.role in [RoleEnum.PROFESSOR, RoleEnum.BOLSISTA, RoleEnum.ADMIN]:
+        incluir_ocultos = True
+        
+    return service.listar_por_noticia(noticia_id=noticia_id, incluir_ocultos=incluir_ocultos)
 
 # --- [US 08] COMENTAR ---
-# POST /noticias/{id}/comentarios
 @router.post("/noticia/{noticia_id}", response_model=ComentarioRead, status_code=status.HTTP_201_CREATED)
 def comentar_noticia(
     noticia_id: int,
     comentario_in: ComentarioCreate,
     session: SessionDep,
-    current_user: CurrentUser
+    current_user: CurrentUser # Aqui o token é OBRIGATÓRIO
 ):
-    """
-    Usuário autenticado comenta em uma notícia.
-    """
-    # Verifica se a notícia existe
     noticia_service = NoticiaService(session)
     if not noticia_service.buscar_por_id(noticia_id):
         raise HTTPException(status_code=404, detail="Notícia não encontrada")
@@ -48,60 +64,45 @@ def comentar_noticia(
         noticia_id=noticia_id
     )
 
-
-# --- [US 08] EXCLUIR PRÓPRIO COMENTÁRIO ---
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_comentario(
+# --- [US 11] OCULTAR/DESOCULTAR (Unificado para clareza) ---
+@router.patch("/{id}/{acao}", response_model=ComentarioRead)
+def moderar_comentario(
     id: int,
+    acao: str, # "ocultar" ou "desocultar"
     session: SessionDep,
     current_user: CurrentUser
 ):
-    """
-    Autor do comentário pode excluir o próprio.
-    """
+    if acao not in ["ocultar", "desocultar"]:
+        raise HTTPException(status_code=400, detail="Ação inválida")
+
     service = ComentarioService(session)
     comentario = service.buscar_por_id(id)
-
     if not comentario:
         raise HTTPException(status_code=404, detail="Comentário não encontrado")
 
-    # Regra: Só o dono do comentário pode apagar
-    if comentario.usuario_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Você só pode apagar seus próprios comentários.")
+    noticia = NoticiaService(session).buscar_por_id(comentario.noticia_id)
+    
+    is_publisher = current_user.role in [RoleEnum.PROFESSOR, RoleEnum.BOLSISTA, RoleEnum.ADMIN]
+    is_autor_noticia = noticia.autor_id == current_user.id
+
+    if acao == "ocultar":
+        if not (is_publisher or is_autor_noticia):
+            raise HTTPException(status_code=403, detail="Sem permissão para ocultar.")
+        return service.ocultar_comentario(comentario)
+    
+    if acao == "desocultar":
+        if not is_publisher:
+            raise HTTPException(status_code=403, detail="Apenas editores podem desocultar.")
+        return service.desocultar_comentario(comentario)
+
+# --- [US 08] EXCLUIR ---
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_comentario(id: int, session: SessionDep, current_user: CurrentUser):
+    service = ComentarioService(session)
+    comentario = service.buscar_por_id(id)
+
+    if not comentario or comentario.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Não permitido.")
 
     service.deletar_comentario(comentario)
     return None
-
-
-# --- [US 11] OCULTAR COMENTÁRIO (Autor da Notícia) ---
-@router.patch("/{id}/ocultar", response_model=ComentarioRead)
-def ocultar_comentario(
-    id: int,
-    session: SessionDep,
-    current_user: CurrentUser
-):
-    """
-    Apenas o AUTOR DA NOTÍCIA pode ocultar comentários nela.
-    """
-    service = ComentarioService(session)
-    comentario = service.buscar_por_id(id)
-
-    if not comentario:
-        raise HTTPException(status_code=404, detail="Comentário não encontrado")
-
-    # Verifica a notícia associada para ver quem é o dono
-    # Precisamos carregar a noticia (SQLModel usually lazy loads, but safe to fetch via service or attribute check)
-    # Como definimos relationship no model, podemos acessar comentario.noticia se estiver carregado,
-    # mas para garantir, vamos buscar a notícia.
-    
-    noticia_service = NoticiaService(session)
-    noticia = noticia_service.buscar_por_id(comentario.noticia_id)
-
-    if not noticia:
-        raise HTTPException(status_code=404, detail="Notícia associada não encontrada")
-
-    # Regra: Só o autor da notícia pode ocultar
-    if noticia.autor_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Apenas o autor da notícia pode ocultar comentários.")
-
-    return service.ocultar_comentario(comentario)

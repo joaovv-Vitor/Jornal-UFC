@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { buscarNoticia } from '../../services/noticias.api'
 import { useAuthStore } from '../../store/auth.store'
-import { curtirNoticia, obterStatusCurtida, listarComentarios, criarComentario, type Comentario } from '../../services/interacao.api'
+import { curtirNoticia, obterStatusCurtida, listarComentarios, criarComentario, ocultarComentario, desocultarComentario, type Comentario } from '../../services/interacao.api'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,17 +31,51 @@ const formatDate = (dateString: string) => {
 
 async function carregarInteracoes(id: number) {
   try {
-    const [resLikes, resComents] = await Promise.all([
-      obterStatusCurtida(id),
-      listarComentarios(id)
+    const comentariosPromise = listarComentarios(id)
+    const likesPromise = authStore.isAuthenticated
+      ? obterStatusCurtida(id)
+      : null
+
+    const results = await Promise.allSettled([
+      comentariosPromise,
+      likesPromise
     ])
-    likesCount.value = resLikes.data.total_curtidas
-    userLiked.value = resLikes.data.curtido_pelo_usuario
-    comentarios.value = resComents.data
+
+    /* ------------------ Comentários ------------------ */
+    const comentariosResult = results[0]
+
+    if (comentariosResult.status === 'fulfilled') {
+      comentarios.value = comentariosResult.value.data
+    } else {
+      console.error(
+        'Erro ao carregar comentários:',
+        comentariosResult.reason
+      )
+      comentarios.value = []
+    }
+
+    /* ------------------ Likes ------------------ */
+    const likesResult = results[1]
+
+    if (
+      authStore.isAuthenticated &&
+      likesResult &&
+      likesResult.status === 'fulfilled'
+    ) {
+      likesCount.value = likesResult.value.data.total_curtidas
+      userLiked.value = likesResult.value.data.curtido_pelo_usuario
+    } else {
+      likesCount.value = 0
+      userLiked.value = false
+    }
   } catch (error) {
-    console.error("Erro ao carregar interações", error)
+    console.error('Erro geral ao carregar interações:', error)
+    comentarios.value = []
+    likesCount.value = 0
+    userLiked.value = false
   }
 }
+
 
 async function handleCurtir() {
   if (!authStore.isAuthenticated) return alert("Faça login para curtir!")
@@ -66,6 +100,44 @@ async function handleComentar() {
   }
 }
 
+async function handleOcultarComentario(comentarioId: number) {
+  if (!confirm('Tem certeza que deseja ocultar este comentário?')) {
+    return
+  }
+  
+  try {
+    const res = await ocultarComentario(comentarioId)
+    // Atualiza o comentário na lista (marca como oculto, mas mantém visível para publishers)
+    const index = comentarios.value.findIndex(c => c.id === comentarioId)
+    if (index !== -1) {
+      comentarios.value[index] = res.data
+    }
+    alert('Comentário ocultado com sucesso!')
+  } catch (error: any) {
+    console.error("Erro ao ocultar comentário:", error)
+    alert(error.response?.data?.detail || "Erro ao ocultar comentário.")
+  }
+}
+
+async function handleDesocultarComentario(comentarioId: number) {
+  if (!confirm('Tem certeza que deseja tornar este comentário visível novamente?')) {
+    return
+  }
+  
+  try {
+    const res = await desocultarComentario(comentarioId)
+    // Atualiza o comentário na lista (marca como não oculto)
+    const index = comentarios.value.findIndex(c => c.id === comentarioId)
+    if (index !== -1) {
+      comentarios.value[index] = res.data
+    }
+    alert('Comentário desocultado com sucesso!')
+  } catch (error: any) {
+    console.error("Erro ao desocultar comentário:", error)
+    alert(error.response?.data?.detail || "Erro ao desocultar comentário.")
+  }
+}
+
 onMounted(async () => {
   try {
     const slug = route.params.slug as string
@@ -81,6 +153,18 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// ✅ NOVO: Recarrega comentários quando o usuário trocar de conta
+watch(
+  () => [authStore.user?.id, authStore.isAuthenticated], // Observa mudanças no usuário e autenticação
+  async ([newUserId, newIsAuth], [oldUserId, oldIsAuth]) => {
+    // Se o usuário mudou (login/logout) e já temos a notícia carregada
+    if ((newUserId !== oldUserId || newIsAuth !== oldIsAuth) && noticia.value?.id) {
+      // Recarrega os comentários e likes para refletir o novo estado do usuário
+      await carregarInteracoes(noticia.value.id)
+    }
+  }
+)
 </script>
 
 <template>
@@ -120,10 +204,37 @@ onMounted(async () => {
         </div>
 
         <div class="comments-list">
-          <div v-for="c in comentarios" :key="c.id" class="comment-item">
+          <div 
+            v-for="c in comentarios" 
+            :key="c.id" 
+            class="comment-item"
+            :class="{ 'comment-oculto': c.oculto }"
+          >
             <div class="comment-header">
-              <strong>{{ c.usuario?.nome || 'Usuário' }}</strong>
-              <small>{{ formatDate(c.criado_em) }}</small>
+              <div>
+                <strong>{{ c.usuario?.nome || 'Usuário' }}</strong>
+                <small>{{ formatDate(c.criado_em) }}</small>
+                <span v-if="c.oculto" class="badge-oculto">👁️ Oculto</span>
+              </div>
+              <!-- Botões de moderação - apenas para publishers -->
+              <div v-if="authStore.isPublisher" class="comment-actions">
+                <button 
+                  v-if="!c.oculto"
+                  @click="handleOcultarComentario(c.id)"
+                  class="btn-ocultar"
+                  title="Ocultar comentário"
+                >
+                  🗑️ Ocultar
+                </button>
+                <button 
+                  v-else
+                  @click="handleDesocultarComentario(c.id)"
+                  class="btn-desocultar"
+                  title="Tornar comentário visível"
+                >
+                  👁️ Desocultar
+                </button>
+              </div>
             </div>
             <p>{{ c.conteudo }}</p>
           </div>
@@ -183,8 +294,54 @@ onMounted(async () => {
 .login-prompt a { color: #d32f2f; font-weight: bold; text-decoration: none; }
 
 .comment-item { border-bottom: 1px solid #eee; padding: 20px 0; }
-.comment-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-.comment-header strong { color: #333; }
-.comment-header small { color: #999; }
+.comment-item.comment-oculto {
+  opacity: 0.6;
+  background-color: #f9f9f9;
+  border-left: 3px solid #ffc107;
+  padding-left: 15px;
+}
+.comment-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.comment-header strong { color: #333; display: block; }
+.comment-header small { color: #999; display: block; margin-top: 4px; }
+.badge-oculto {
+  display: inline-block;
+  background-color: #ffc107;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 8px;
+}
+.comment-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-ocultar {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+.btn-ocultar:hover {
+  background-color: #c82333;
+}
+.btn-desocultar {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.2s;
+}
+.btn-desocultar:hover {
+  background-color: #218838;
+}
 .no-comments { text-align: center; color: #999; padding: 20px; }
 </style>

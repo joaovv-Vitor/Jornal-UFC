@@ -4,6 +4,7 @@ export interface Comentario {
     id: number
     conteudo: string
     criado_em: string
+    oculto: boolean
     usuario?: {
         id: number
         nome: string
@@ -26,10 +27,22 @@ export const obterStatusCurtida = (id: number) => {
 }
 
 export const listarComentarios = (id: number) => {
-    return api.get<Comentario[]>(`/noticias/${id}/comentarios`)
+    // ✅ CORRIGIDO: Backend usa /comentarios/noticia/{id}
+    return api.get<Comentario[]>(`/comentarios/noticia/${id}`)
 }
 
 export const criarComentario = (id: number, conteudo: string) => {
+    // ✅ CORRIGIDO: Backend usa /comentarios/noticia/{id}
     // Envia um objeto JSON { "conteudo": "texto" }
-    return api.post<Comentario>(`/noticias/${id}/comentarios`, { conteudo })
+    return api.post<Comentario>(`/comentarios/noticia/${id}`, { conteudo })
+}
+
+export const ocultarComentario = (comentarioId: number) => {
+    // Ocultar comentário (soft delete) - apenas publishers podem fazer
+    return api.patch<Comentario>(`/comentarios/${comentarioId}/ocultar`)
+}
+
+export const desocultarComentario = (comentarioId: number) => {
+    // Desocultar comentário - apenas publishers podem fazer
+    return api.patch<Comentario>(`/comentarios/${comentarioId}/desocultar`)
 }

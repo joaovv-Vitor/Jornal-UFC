@@ -49,3 +49,11 @@ class ComentarioService:
         self.session.commit()
         self.session.refresh(comentario)
         return comentario
+
+    # [US 11] - DESOCULTAR (Publishers)
+    def desocultar_comentario(self, comentario: Comentario):
+        comentario.oculto = False
+        self.session.add(comentario)
+        self.session.commit()
+        self.session.refresh(comentario)
+        return comentario

@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { buscarNoticia, atualizarNoticia } from '../../services/noticias.api'
 import NoticiaForm from '../../components/noticias/NoticiaForm.vue'
-import type { Noticia } from '../../types/noticias'
 
 const route = useRoute()
 const router = useRouter()
