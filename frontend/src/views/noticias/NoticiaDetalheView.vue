@@ -31,7 +31,13 @@ const formatDate = (dateString: string) => {
 
 async function carregarInteracoes(id: number) {
   try {
+    // 1. O Total de likes inicial vem da própria notícia, não da requisição de status
+    // Garante que mostre 0 se vier nulo
+likesCount.value = noticia.value?.curtidas_count ?? 0
+
     const comentariosPromise = listarComentarios(id)
+    
+    // Só busca status se estiver logado
     const likesPromise = authStore.isAuthenticated
       ? obterStatusCurtida(id)
       : null
@@ -43,45 +49,63 @@ async function carregarInteracoes(id: number) {
 
     /* ------------------ Comentários ------------------ */
     const comentariosResult = results[0]
-
     if (comentariosResult.status === 'fulfilled') {
       comentarios.value = comentariosResult.value.data
     } else {
-      console.error(
-        'Erro ao carregar comentários:',
-        comentariosResult.reason
-      )
+      console.error('Erro nos comentários:', comentariosResult.reason)
       comentarios.value = []
     }
 
-    /* ------------------ Likes ------------------ */
+    /* ------------------ Likes (Status do Usuário) ------------------ */
     const likesResult = results[1]
 
-    if (
-      authStore.isAuthenticated &&
-      likesResult &&
-      likesResult.status === 'fulfilled'
-    ) {
-      likesCount.value = likesResult.value.data.total_curtidas
-      userLiked.value = likesResult.value.data.curtido_pelo_usuario
+    // Se estiver logado E a promessa tiver dado certo
+    if (authStore.isAuthenticated && likesResult && likesResult.status === 'fulfilled') {
+      // CORREÇÃO AQUI: Verifique qual chave seu backend manda no GET. 
+      // Se for o endpoint que criamos antes, a chave é 'curtido'.
+      const dados = likesResult.value.data
+      userLiked.value = dados.curtido !== undefined ? dados.curtido : dados.curtido_pelo_usuario
     } else {
-      likesCount.value = 0
       userLiked.value = false
     }
+
   } catch (error) {
-    console.error('Erro geral ao carregar interações:', error)
-    comentarios.value = []
-    likesCount.value = 0
-    userLiked.value = false
+    console.error('Erro geral:', error)
   }
 }
+
+onMounted(async () => {
+  try {
+    const slug = route.params.slug as string
+    const response = await buscarNoticia(slug)
+    noticia.value = response.data
+    
+    // Define o título da página (opcional, mas bom pra UX)
+    document.title = noticia.value.titulo
+
+    if (noticia.value?.id) {
+       await carregarInteracoes(noticia.value.id)
+    }
+  } catch (e) {
+    console.error("Erro ao carregar notícia:", e)
+    // DICA: Não dê router.push('/') aqui enquanto estiver debugando.
+    // Isso esconde o erro real. Deixe o console.error mostrar o que houve.
+    // router.push('/') 
+    alert("Erro ao carregar notícia. Verifique o console.")
+  } finally {
+    loading.value = false
+  }
+})
 
 
 async function handleCurtir() {
   if (!authStore.isAuthenticated) return alert("Faça login para curtir!")
   try {
     const res = await curtirNoticia(noticia.value.id)
-    likesCount.value = res.data.total_curtidas
+    
+    // O POST retorna 'total_curtidas' (diferente do GET da notícia que é 'curtidas_count')
+    // Isso é normal em APIs, apenas certifique-se que o backend manda assim no POST.
+    likesCount.value = res.data.total_curtidas 
     userLiked.value = res.data.curtido_pelo_usuario
   } catch (error) {
     console.error(error)

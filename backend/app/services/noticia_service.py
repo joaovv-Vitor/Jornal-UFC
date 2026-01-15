@@ -188,6 +188,10 @@ class NoticiaService:
             .where(Noticia.deleted_at == None)
         ).first()
 
+
+
+
+
     def buscar_por_id(self, id: int) -> Optional[Noticia]:
         return self.session.exec(
             select(Noticia)
@@ -261,42 +265,50 @@ class NoticiaService:
         self.session.refresh(noticia)
 
     def alternar_curtida(self, noticia_id: int, usuario_id: int) -> dict:
-        """
-        Lógica de Toggle:
-        - Se já existe: remove (descurtir).
-        - Se não existe: cria (curtir).
-        Retorna o estado final e o total atualizado.
-        """
-        # 1. Busca se já existe a curtida (Chave Composta)
-        curtida_existente = self.session.exec(
-            select(CurtidaNoticia)
-            .where(CurtidaNoticia.usuario_id == usuario_id)
-            .where(CurtidaNoticia.noticia_id == noticia_id)
-        ).first()
+        try:
+            # 1. Busca se já existe
+            statement = select(CurtidaNoticia).where(
+                CurtidaNoticia.usuario_id == usuario_id,
+                CurtidaNoticia.noticia_id == noticia_id
+            )
+            curtida_existente = self.session.exec(statement).first()
 
-        estado_final = False
-
-        if curtida_existente:
-            # REMOVER (Descurtir)
-            self.session.delete(curtida_existente)
-            self.session.commit()
             estado_final = False
-        else:
-            # ADICIONAR (Curtir)
-            nova_curtida = CurtidaNoticia(usuario_id=usuario_id, noticia_id=noticia_id)
-            self.session.add(nova_curtida)
-            self.session.commit()
-            estado_final = True
 
-        # 2. Conta o total atualizado para devolver ao front
-        # (Mais performático que carregar a lista inteira de usuários)
-        total = self.session.exec(
-            select(func.count())
-            .select_from(CurtidaNoticia)
-            .where(CurtidaNoticia.noticia_id == noticia_id)
-        ).one()
+            if curtida_existente:
+                # REMOVER (Descurtir)
+                self.session.delete(curtida_existente)
+                self.session.commit()
+                estado_final = False
+            else:
+                # ADICIONAR (Curtir)
+                nova_curtida = CurtidaNoticia(usuario_id=usuario_id, noticia_id=noticia_id)
+                self.session.add(nova_curtida)
+                self.session.commit()
+                estado_final = True
 
-        return {
-            "curtido_pelo_usuario": estado_final,
-            "total_curtidas": total
-        }
+            # 2. Conta o total (Correção aqui para garantir que seja um int)
+            # Usamos .first() em vez de .one() para evitar exceção se algo bizarro acontecer
+            total_query = self.session.exec(
+                select(func.count())
+                .select_from(CurtidaNoticia)
+                .where(CurtidaNoticia.noticia_id == noticia_id)
+            ).first()
+
+            # Garante que 'total' seja um número, mesmo que venha None ou Tupla
+            if total_query is None:
+                total_int = 0
+            else:
+                # Se vier (5,), pega o 5. Se vier 5, usa o 5.
+                total_int = total_query if isinstance(total_query, int) else total_query[0]
+
+            return {
+                "curtido_pelo_usuario": estado_final,
+                "total_curtidas": total_int
+            }
+
+        except Exception as e:
+            # Se der erro (ex: chave estrangeira inválida), faz rollback e avisa
+            self.session.rollback()
+            print(f"ERRO CRÍTICO NO CURTIR: {e}")
+            raise e

@@ -1,10 +1,10 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Query
 
 from app.core.database import SessionDep
 from app.core.deps import CurrentUser
 from app.models.usuario import RoleEnum
-from app.schemas.noticia import NoticiaRead
+from app.schemas.noticia import NoticiaRead, NoticiaRead, CurtidaResponse
 # Se você configurou o __init__.py em services, use assim:
 from app.services import NoticiaService
 # Se não configurou, use: from app.services.noticia_service import NoticiaService
@@ -60,14 +60,31 @@ def criar_noticia(
 @router.get("/", response_model=List[NoticiaRead])
 def listar_feed(
     skip: int = 0, 
-    limit: int = 10, 
+    limit: int = 10,
+    q: Optional[str] = Query(None, description="Busca por título, subtítulo ou autor"),
+    categoria: Optional[str] = Query(None, description="Slug da categoria"),
+    tag: Optional[str] = Query(None, description="Slug da tag"),
+    ano: Optional[int] = Query(None, description="Filtrar por ano"),
+    mes: Optional[int] = Query(None, description="Filtrar por mês (1-12)"),
     session: SessionDep = None
 ):
     """
-    Feed de notícias público.
+    Feed de notícias com suporte a busca (q) e filtros combinados.
+    Exemplos:
+    - /noticias?q=Vacina
+    - /noticias?categoria=saude&ano=2025
+    - /noticias?tag=urgente
     """
     service = NoticiaService(session)
-    return service.listar_noticias(skip, limit)
+    return service.listar_noticias(
+        skip=skip, 
+        limit=limit,
+        termo_busca=q,
+        categoria_slug=categoria,
+        tag_slug=tag,
+        ano=ano,
+        mes=mes
+    )
 
 
 # --- [US 03] DETALHES (POR SLUG) ---
@@ -150,3 +167,25 @@ def editar_noticia(
     )
     
     return noticia_atualizada
+
+# [US 07] - CURTIR / DESCURTIR
+@router.post("/{id}/curtir", response_model=CurtidaResponse)
+def curtir_noticia(
+    id: int,
+    session: SessionDep,
+    current_user: CurrentUser # <--- Exige login (US 07: Disponível apenas logado)
+):
+    """
+    Alterna a curtida (Like/Unlike).
+    Retorna o novo total e se o usuário está curtindo no momento.
+    """
+    service = NoticiaService(session)
+    
+    # Verifica se a notícia existe
+    noticia = service.buscar_por_id(id)
+    if not noticia:
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+
+    resultado = service.alternar_curtida(noticia_id=id, usuario_id=current_user.id)
+    
+    return resultado
