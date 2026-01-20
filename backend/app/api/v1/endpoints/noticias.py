@@ -189,3 +189,22 @@ def curtir_noticia(
     resultado = service.alternar_curtida(noticia_id=id, usuario_id=current_user.id)
     
     return resultado
+
+# [NOVO] VERIFICAR STATUS DA CURTIDA (Para carregar a página)
+@router.get("/{id}/curtida", response_model=CurtidaResponse)
+def consultar_status_curtida(
+    id: int,
+    session: SessionDep,
+    current_user: CurrentUser # Exige login para saber "se aquele usuário curtiu"
+):
+    """
+    Retorna se o usuário atual já curtiu a notícia e o total de likes.
+    Útil para renderizar o ícone de coração (cheio ou vazio) ao carregar a tela.
+    """
+    service = NoticiaService(session)
+    
+    # Opcional: Verificar se a notícia existe antes
+    if not service.buscar_por_id(id):
+        raise HTTPException(status_code=404, detail="Notícia não encontrada")
+
+    return service.verificar_status_curtida(noticia_id=id, usuario_id=current_user.id)

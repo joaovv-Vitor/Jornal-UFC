@@ -312,3 +312,32 @@ class NoticiaService:
             self.session.rollback()
             print(f"ERRO CRÍTICO NO CURTIR: {e}")
             raise e
+
+# ... outros métodos ...
+
+    def verificar_status_curtida(self, noticia_id: int, usuario_id: int) -> dict:
+        """
+        Verifica se um usuário específico curtiu a notícia e conta o total.
+        Usado para carregar o estado inicial do botão no frontend.
+        """
+        # 1. Verifica se o usuário logado curtiu
+        # Usamos .first() pois se retornar algo, é True, se None, é False
+        curtida = self.session.exec(
+            select(CurtidaNoticia)
+            .where(CurtidaNoticia.usuario_id == usuario_id)
+            .where(CurtidaNoticia.noticia_id == noticia_id)
+        ).first()
+
+        curtido_pelo_usuario = bool(curtida)
+
+        # 2. Conta o total atualizado
+        total = self.session.exec(
+            select(func.count())
+            .select_from(CurtidaNoticia)
+            .where(CurtidaNoticia.noticia_id == noticia_id)
+        ).one()
+
+        return {
+            "curtido_pelo_usuario": curtido_pelo_usuario,
+            "total_curtidas": total
+        }
