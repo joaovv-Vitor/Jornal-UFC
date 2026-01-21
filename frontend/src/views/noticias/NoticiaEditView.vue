@@ -3,6 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { buscarNoticia, atualizarNoticia } from '../../services/noticias.api'
 import NoticiaForm from '../../components/noticias/NoticiaForm.vue'
+import BackButton from '../../components/BackButton.vue'
+
+
 
 const route = useRoute()
 const router = useRouter()
@@ -71,9 +74,8 @@ onMounted(carregarDados)
 <template>
   <div class="edit-view-container">
     <header class="header">
-      <button @click="router.back()" class="back-btn">
+      <BackButton/>
         <span class="icon">←</span> Voltar
-      </button>
       <h1>Editar Publicação</h1>
     </header>
 
@@ -115,17 +117,7 @@ onMounted(carregarDados)
   margin-bottom: 30px;
 }
 
-.back-btn {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  }
-  .back-btn:hover {
-  color: #f30606;
-  }
+
 h1 {
   font-size: 1.8rem;
   color: #ffffff;

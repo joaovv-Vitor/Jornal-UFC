@@ -100,9 +100,6 @@ const submit = async () => {
 </template>
 
 <style scoped>
-body {
-  background-color: white;
-}
 .login-container {
   display: flex;
   justify-content: center;
@@ -110,6 +107,7 @@ body {
   gap: 120px;
   padding: 20px;
   min-height: 100vh;
+  background-color: var(--primary-color);
 }
 
 .login-card {

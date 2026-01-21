@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { criarNoticia } from '../../services/noticias.api'
 import NoticiasForm from '../../components/noticias/NoticiaForm.vue'
+import BackButton from '../../components/BackButton.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -30,7 +31,7 @@ async function handleSubmit(formData: FormData) {
 <template>
   <div class="create-view-container">
     <div class="header">
-      <button @click="router.back()" class="back-btn">← Voltar</button>
+      <BackButton/>
       <h1>Nova Publicação</h1>
     </div>
 
@@ -46,9 +47,6 @@ async function handleSubmit(formData: FormData) {
 </template>
 
 <style scoped>
-  h1{
-    color: white;
-  }
 .create-view-container {
   max-width: 800px;
   margin: 40px auto;
@@ -61,20 +59,6 @@ async function handleSubmit(formData: FormData) {
   gap: 20px;
   margin-bottom: 30px;
 }
-
-.back-btn {
-  background-color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  color: #000;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  }
-  .back-btn:hover {
-  color: #f30606;
-  }
   
 .form-card {
   background: white;

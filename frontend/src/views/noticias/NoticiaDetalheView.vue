@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { buscarNoticia } from '../../services/noticias.api'
+import { buscarNoticia, listarNoticias } from '../../services/noticias.api'
 import { useAuthStore } from '../../store/auth.store'
 import { curtirNoticia, obterStatusCurtida, listarComentarios, criarComentario, ocultarComentario, desocultarComentario, type Comentario } from '../../services/interacao.api'
+import BackButton from '../../components/BackButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,7 @@ const comentarios = ref<Comentario[]>([])
 const novoComentario = ref('')
 const likesCount = ref(0)
 const userLiked = ref(false)
+const outrasNoticias = ref<any[]>([])
 
 const getImageUrl = (path: string | undefined | null) => {
   if (!path) return ''
@@ -74,6 +76,18 @@ likesCount.value = noticia.value?.curtidas_count ?? 0
   }
 }
 
+async function carregarOutras(id: number) {
+  try {
+    // Busca notícias recentes (assumindo que o padrão traz as últimas)
+    const response = await listarNoticias()
+    outrasNoticias.value = response.data
+      .filter((n: any) => n.id !== id) // Remove a notícia atual da lista
+      .slice(0, 3) // Pega apenas 3 para exibir
+  } catch (error) {
+    console.error('Erro ao carregar outras notícias:', error)
+  }
+}
+
 onMounted(async () => {
   try {
     const slug = route.params.slug as string
@@ -85,6 +99,7 @@ onMounted(async () => {
 
     if (noticia.value?.id) {
        await carregarInteracoes(noticia.value.id)
+       await carregarOutras(noticia.value.id)
     }
   } catch (e) {
     console.error("Erro ao carregar notícia:", e)
@@ -162,22 +177,6 @@ async function handleDesocultarComentario(comentarioId: number) {
   }
 }
 
-onMounted(async () => {
-  try {
-    const slug = route.params.slug as string
-    const response = await buscarNoticia(slug)
-    noticia.value = response.data
-    
-    // Carrega likes e comentários após ter a notícia
-    if (noticia.value?.id) await carregarInteracoes(noticia.value.id)
-  } catch (e) {
-    console.error(e)
-    router.push('/')
-  } finally {
-    loading.value = false
-  }
-})
-
 // ✅ NOVO: Recarrega comentários quando o usuário trocar de conta
 watch(
   () => [authStore.user?.id, authStore.isAuthenticated], // Observa mudanças no usuário e autenticação
@@ -189,13 +188,30 @@ watch(
     }
   }
 )
+
+// Recarrega a notícia se o slug mudar (navegação pelo "Veja Mais")
+watch(
+  () => route.params.slug,
+  async (newSlug) => {
+    if (!newSlug) return
+    loading.value = true
+    try {
+      const response = await buscarNoticia(newSlug as string)
+      noticia.value = response.data
+      if (noticia.value?.id) {
+        await carregarInteracoes(noticia.value.id)
+        await carregarOutras(noticia.value.id)
+      }
+    } catch (e) { console.error(e) } finally { loading.value = false }
+  }
+)
 </script>
 
 <template>
   <div class="detalhe-wrapper">
     <div v-if="loading" class="msg">Carregando...</div>
     <article v-else-if="noticia" class="noticia-body">
-      <button class="back-btn" @click="router.back()">← Voltar</button>
+      <BackButton/>
       
       <img v-if="noticia.imagem_capa" :src="getImageUrl(noticia.imagem_capa)" class="capa">
       
@@ -266,6 +282,27 @@ watch(
         </div>
       </section>
 
+      <!-- Veja Mais -->
+      <section v-if="outrasNoticias.length" class="veja-mais-section">
+        <h3>Veja também</h3>
+        <div class="veja-mais-grid">
+          <router-link 
+            v-for="item in outrasNoticias" 
+            :key="item.id" 
+            :to="`/noticias/${item.slug}`" 
+            class="card-pequeno"
+          >
+            <div class="card-pequeno-img" v-if="item.imagem_capa">
+              <img :src="getImageUrl(item.imagem_capa)" :alt="item.titulo">
+            </div>
+            <div class="card-pequeno-content">
+              <h4>{{ item.titulo }}</h4>
+              <span class="card-date">{{ formatDate(item.criado_em) }}</span>
+            </div>
+          </router-link>
+        </div>
+      </section>
+
     </article>
   </div>
 </template>
@@ -290,17 +327,6 @@ watch(
 }
 .galeria img { 
   width: 100%; height: 150px; object-fit: cover; 
-  }
-  .back-btn {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  }
-  .back-btn:hover {
-  color: #f30606;
   }
 
 /* Estilos de Interação */
@@ -368,4 +394,18 @@ watch(
   background-color: #218838;
 }
 .no-comments { text-align: center; color: #999; padding: 20px; }
+
+/* Veja Mais */
+.veja-mais-section { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+.veja-mais-section h3 { margin-bottom: 15px; font-size: 1.2rem; color: #333; }
+.veja-mais-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+.card-pequeno { 
+  display: flex; flex-direction: column; text-decoration: none; color: inherit; 
+  background: #f9f9f9; border-radius: 8px; overflow: hidden; transition: transform 0.2s;
+}
+.card-pequeno:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.card-pequeno-img img { width: 100%; height: 120px; object-fit: cover; }
+.card-pequeno-content { padding: 10px; }
+.card-pequeno-content h4 { margin: 0 0 5px 0; font-size: 0.95rem; line-height: 1.3; }
+.card-date { font-size: 0.75rem; color: #888; }
 </style>

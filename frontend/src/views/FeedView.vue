@@ -155,7 +155,7 @@ const getImageUrl = (path: string | undefined | null): string => {
 .btn-create {
   background-color: #28a745;
   color: white;
-  padding: 8px 16px;
+  padding: 8px 5px;
   border-radius: 4px;
   text-decoration: none;
   font-weight: bold;
@@ -186,7 +186,7 @@ const getImageUrl = (path: string | undefined | null): string => {
   font-size: 1.5rem;
   margin-bottom: 20px;
   margin-left: 40%;
-  color: #ffffff;
+  color: #023b79;
 }
 
 .filters {
@@ -254,9 +254,10 @@ span.user-name {
   text-transform: uppercase;
 }
 
-h3 { margin: 10px 0; font-size: 1.2rem; color: #333; }
-h1{color: rgb(0, 31, 71);}
+h3 { margin: 10px 0; font-size: 1.2rem; color: #000000; }
+h1{color: #023b79;}
 p { color: #666; font-size: 0.9rem; margin-bottom: 15px; }
+h2{padding: 10px;}
 
 
 .read-more {

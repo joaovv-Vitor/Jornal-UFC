@@ -6,6 +6,7 @@ import { listarNoticias, deletarNoticia } from '../../services/noticias.api'
 import NoticiaCard from '../../components/noticias/NoticiaCard.vue'
 import DeleteConfirm from '../../components/noticias/DeleteConfirm.vue'
 import type { Noticia } from '../../types/noticias'
+import BackButton from '../../components/BackButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -64,7 +65,8 @@ onMounted(async () => {
   <div class="minhas-noticias-view">
     <header class="view-header">
       <div class="title-group">
-        <button @click="router.back()" class="back-btn">← Voltar</button>
+      
+       <BackButton/>
         <h1>Minhas Publicações</h1>
       </div>
       
@@ -116,11 +118,8 @@ onMounted(async () => {
 <style scoped>
 /* Container principal da página: limita a largura e centraliza */
 .minhas-noticias-view {
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
 }
-
 /* Cabeçalho da view: alinha o título e o botão de nova notícia */
 .view-header {
   display: flex;
@@ -129,6 +128,8 @@ onMounted(async () => {
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 1px solid #eee;
+  background-color: #ffffff;
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1);
 }
 
 /* Agrupa o botão de voltar e o título h1 */
@@ -136,34 +137,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 15px;
+  
 }
-
-/* Botão de voltar: estilo minimalista sem borda */
-.back-btn {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.back-btn:hover {
-  color: #f30606;
-}
-
-/* Título da página */
-h1 {
-  margin: 0;
-  color: #ffffff;
-  font-size: 1.8rem;
-}
-
 /* Botão verde para criar nova notícia */
 .btn-new {
   background-color: #28a745;
   color: white;
-  padding: 10px 20px;
+  padding: 10px;
+  margin-right: 10px;
   border-radius: 6px;
   text-decoration: none;
   font-weight: bold;
@@ -177,6 +158,7 @@ h1 {
 /* Grid responsivo: ajusta colunas automaticamente (min 300px) */
 .grid-container {
   display: grid;
+  padding: 1px;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 25px;
 }

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { listarCategorias, criarCategoria, deletarCategoria } from '../services/categorias.api'
 import type { Categoria } from '../types/categoria'
+import BackButton from '../components/BackButton.vue'
 
 const router = useRouter()
 const categorias = ref<Categoria[]>([])
@@ -76,7 +77,7 @@ onMounted(() => {
 <template>
   <div class="categorias-container">
     <div class="header">
-      <button @click="router.back()" class="back-btn">← Voltar</button>
+      <BackButton/>
       <h1>Gerenciar Categorias</h1>
     </div>
 
@@ -155,26 +156,6 @@ onMounted(() => {
   align-items: center;
   gap: 20px;
   margin-bottom: 30px;
-}
-
-.header h1 {
-  color: white;
-  margin: 0;
-}
-
-.back-btn {
-  background-color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  color: #000;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.back-btn:hover {
-  color: #f30606;
 }
 
 .form-card {
