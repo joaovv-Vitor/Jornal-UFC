@@ -60,7 +60,7 @@ def criar_noticia(
 @router.get("/", response_model=List[NoticiaRead])
 def listar_feed(
     skip: int = 0, 
-    limit: int = 10,
+    limit: int = 4,
     q: Optional[str] = Query(None, description="Busca por título, subtítulo ou autor"),
     categoria: Optional[str] = Query(None, description="Slug da categoria"),
     tag: Optional[str] = Query(None, description="Slug da tag"),

@@ -130,7 +130,7 @@ class NoticiaService:
     def listar_noticias(
         self, 
         skip: int = 0, 
-        limit: int = 10,
+        limit: int = 4,
         termo_busca: Optional[str] = None,    
         categoria_slug: Optional[str] = None, 
         tag_slug: Optional[str] = None,       
@@ -187,10 +187,7 @@ class NoticiaService:
             .where(Noticia.slug == slug)
             .where(Noticia.deleted_at == None)
         ).first()
-
-
-
-
+        
 
     def buscar_por_id(self, id: int) -> Optional[Noticia]:
         return self.session.exec(

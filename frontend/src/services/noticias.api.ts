@@ -1,8 +1,10 @@
 import { api } from './api'
 import type { Noticia } from '../types/noticias'
 
-export function listarNoticias() {
-  return api.get<Noticia[]>('/noticias')
+export function listarNoticias(params?: { skip?: number, limit?: number }) {
+  return api.get<Noticia[]>('/noticias', {
+    params,
+  })
 }
 
 export function buscarNoticia(slug: string) {

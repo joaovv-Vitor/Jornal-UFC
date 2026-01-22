@@ -69,11 +69,14 @@ const routes: RouteRecordRaw[] = [
 
 const router = createRouter({
     history: createWebHistory(),
-    routes
+    routes,
+    scrollBehavior() {
+        return { top: 0 }
+    }
 })
 
 // 💡 GUARDA DE ROTAS: Lógica completa (Auth + Permissão)
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
     const authStore = useAuthStore()
     const requiresAuth = to.meta.requiresAuth as boolean
     const requiredPermission = to.meta.requiredPermission as string | undefined

@@ -28,8 +28,6 @@ export interface CurtidaStatusResponse {
     curtido: boolean
 }
 
-// --- FIM DA CORREÇÃO ---
-
 export const curtirNoticia = (id: number) => {
     // Retorna ActionResponse (com total atualizado)
     return api.post<CurtidaActionResponse>(`/noticias/${id}/curtir`)

@@ -250,3 +250,6 @@ dist-ssr/
 
 # ESLint cache
 .eslintcache
+
+# static folder
+static/

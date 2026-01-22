@@ -3,15 +3,19 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Noticia } from '../../types/noticias'
 
-const props = defineProps<{
-  noticia: Noticia
-}>()
+const props = withDefaults(
+  defineProps<{
+    noticia: Noticia
+    variant?: 'default' | 'carousel'
+  }>(),
+  {
+    variant: 'default'
+  }
+)
 
-// 💡 CORREÇÃO 1: Função para montar a URL completa da imagem
 const getImageUrl = (path: string | undefined | null): string => {
-  if (!path) return '' 
+  if (!path) return ''
   if (path.startsWith('http')) return path
-  // Garante que o caminho comece com / e concatena com o endereço do backend
   const cleanPath = path.startsWith('/') ? path : `/${path}`
   return `http://localhost:8000${cleanPath}`
 }
@@ -26,10 +30,11 @@ const dataFormatada = computed(() => {
 })
 </script>
 
+
 <template>
-  <article class="noticia-card">
+  <article class="noticia-card" :class="variant">
     <RouterLink :to="`/noticias/${noticia.slug}`" class="card-link">
-      
+
       <img
         v-if="noticia.imagem_capa"
         :src="getImageUrl(noticia.imagem_capa)"
@@ -52,28 +57,33 @@ const dataFormatada = computed(() => {
           <span class="data">{{ dataFormatada }}</span>
         </div>
 
-        <div v-if="noticia.tags?.length" class="tags">
+        <!-- Tags só aparecem fora do carrossel -->
+        <div v-if="variant === 'default' && noticia.tags?.length" class="tags">
           <span
             v-for="tag in noticia.tags"
-            :key="tag.id" class="tag"
+            :key="tag.id"
+            class="tag"
           >
             #{{ tag.nome }}
           </span>
         </div>
-      </div>
 
+      </div>
     </RouterLink>
   </article>
 </template>
 
+
 <style scoped>
+/* =======================
+   BASE
+======================= */
 .noticia-card {
   border-radius: 12px;
   overflow: hidden;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  height: 100%; /* Garante que todos os cards tenham o mesmo tamanho no grid */
   display: flex;
 }
 
@@ -84,21 +94,23 @@ const dataFormatada = computed(() => {
 
 .card-link {
   text-decoration: none;
-  color: #333; /* Cor do texto mais escura para legibilidade */
+  color: #333;
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-.capa {
+/* =======================
+   IMAGEM
+======================= */
+.capa,
+.sem-capa {
   width: 100%;
   height: 200px;
   object-fit: cover;
 }
 
 .sem-capa {
-  width: 100%;
-  height: 200px;
   background: #eee;
   display: flex;
   align-items: center;
@@ -106,9 +118,11 @@ const dataFormatada = computed(() => {
   font-size: 3rem;
 }
 
+/* =======================
+   CONTEÚDO
+======================= */
 .conteudo {
   padding: 16px;
-  flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
@@ -124,23 +138,23 @@ const dataFormatada = computed(() => {
   font-size: 0.95rem;
   color: #555;
   margin-bottom: 12px;
-  flex-grow: 1; /* Empurra a meta e tags para o final do card */
 }
 
 .meta {
   font-size: 0.8rem;
   color: #777;
   display: flex;
-  justify-content: space-between; /* Autor de um lado, data do outro */
-  margin-bottom: 12px;
-  border-top: 1px solid #f5f5f5;
+  justify-content: space-between;
+  margin-top: auto;
   padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 10px;
 }
 
 .tag {
@@ -151,4 +165,24 @@ const dataFormatada = computed(() => {
   border-radius: 999px;
   font-weight: 500;
 }
+
+/* =======================
+   VARIANT: CAROUSEL
+======================= */
+.noticia-card.carousel {
+  height: auto;            /* 🔥 NÃO ESTICA */
+}
+
+.noticia-card.carousel .capa,
+.noticia-card.carousel .sem-capa {
+  height: 180px;
+}
+
+.noticia-card.carousel .subtitulo {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 </style>

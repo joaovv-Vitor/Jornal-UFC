@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
+import { useRoute} from 'vue-router'
 import { buscarNoticia, listarNoticias } from '../../services/noticias.api'
 import { useAuthStore } from '../../store/auth.store'
 import { curtirNoticia, obterStatusCurtida, listarComentarios, criarComentario, ocultarComentario, desocultarComentario, type Comentario } from '../../services/interacao.api'
 import BackButton from '../../components/BackButton.vue'
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 
 const noticia = ref<any>(null)
@@ -110,6 +109,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  // Restaura o título da página ao sair
+  document.title = 'Jornal UFC'
 })
 
 
@@ -408,4 +412,11 @@ watch(
 .card-pequeno-content { padding: 10px; }
 .card-pequeno-content h4 { margin: 0 0 5px 0; font-size: 0.95rem; line-height: 1.3; }
 .card-date { font-size: 0.75rem; color: #888; }
+
+.sub {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 20px;
+  font-style: italic;
+}
 </style>
